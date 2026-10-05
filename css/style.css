@@ -25,12 +25,12 @@ pre.code code{background:none;padding:0;color:inherit}
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:10px 20px;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
 .brand{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--text);white-space:nowrap}.brand:hover{text-decoration:none}
 .logo{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--primary);color:#fff;font-weight:800}
-.nav{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
-.nav a{padding:7px 11px;border-radius:9px;color:var(--muted);font-weight:550;font-size:.93rem;white-space:nowrap;position:relative}
+.nav{display:flex;gap:0;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+.nav a{padding:7px 9px;border-radius:9px;color:var(--muted);font-weight:550;font-size:.9rem;white-space:nowrap;position:relative}
 .nav a:hover{background:var(--surface2);text-decoration:none;color:var(--text)}
 .nav a.active{background:var(--primary-soft);color:var(--primary)}
 .nav .badge{background:var(--bad);color:#fff;border-radius:99px;font-size:.7rem;padding:1px 6px;margin-left:5px}
-.search input{width:190px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:inherit;font-size:.9rem}
+.search input{width:130px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:inherit;font-size:.9rem}
 .icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:1rem}
 .container{max-width:1060px;margin:0 auto;padding:26px 20px 90px;outline:none}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
