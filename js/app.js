@@ -171,7 +171,7 @@
     const box = $("#tab", el);
     App.title = l.title;
     if (tab === "theory") {
-      box.innerHTML = `<div class="grid g2" style="grid-template-columns:minmax(0,1fr)"><div class="card" style="max-width:820px"><b>После урока вы сможете</b><ul>${l.objectives.map(o => `<li>${esc(o)}</li>`).join("")}</ul></div></div>
+      box.innerHTML = `<div class="grid g2" style="grid-template-columns:minmax(0,1fr)"><div class="card" style="max-width:820px"><b>После урока вы сможете</b><ul>${l.objectives.map(o => { const t = String(o).replace(/^(после урока\s+)?вы\s+сможете\s*/i, ""); return `<li>${esc(t.charAt(0).toUpperCase() + t.slice(1))}</li>`; }).join("")}</ul></div></div>
       <article class="prose mt">${MD.render(l.theory)}</article>
       ${(l.resources || []).length ? `<h3>Ресурсы</h3><ul>${l.resources.map(r => `<li><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>${r.note ? ` — <span class="muted">${esc(r.note)}</span>` : ""}</li>`).join("")}</ul>` : ""}
       <div class="card mt"><b>Мои заметки</b><textarea id="note" placeholder="Что запомнилось, что применю на практике…">${esc(S.state.notes[id] || "")}</textarea></div>

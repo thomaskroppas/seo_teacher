@@ -5,7 +5,7 @@
   const today = () => new Date().toISOString().slice(0, 10);
   const defaults = () => ({
     v: 1, startDate: today(), lessons: {}, cards: {}, qstats: {}, scen: {}, exams: {},
-    checklists: {}, projects: [], notes: {}, activity: {}, theme: "auto", tools: {}
+    checklists: {}, projects: [], notes: {}, activity: {}, theme: "auto", tools: {}, chats: {}
   });
   let state;
   let memoryOnly = false;

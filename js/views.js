@@ -222,7 +222,9 @@
       <div class="row"><button class="btn primary" id="exp">Экспорт в файл</button><button class="btn" id="imp">Импорт из файла</button><input type="file" id="file" accept="application/json" class="hide"></div></div>
       <div class="card"><h3 style="margin-top:0">Старт обучения</h3><div class="field"><label>Дата начала (для счётчика дней)</label><input type="date" id="sd" value="${esc(S.state.startDate)}"></div>
       <h3>Сброс</h3><button class="btn danger" id="reset">Стереть весь прогресс</button></div></div>
+      ${App.aiSettingsHTML ? App.aiSettingsHTML() : ""}
       <div class="card"><h3 style="margin-top:0">Как учиться по этому курсу</h3><ol><li>Теория → практика → квиз: не переходите дальше, пока практика не сделана (результаты записывайте в заметки).</li><li>Карточки — 10 минут в день. Они возвращают вас к теме через 1, 3, 7, 16, 35 дней.</li><li>Кейсы — после каждого модуля: учат принимать решения.</li><li>Ведите реальный проект. Курс — карта, трафик даёт только ваш сайт.</li></ol></div>`;
+    if (App.aiSettingsBind) App.aiSettingsBind(el);
     $("#exp", el).addEventListener("click", () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([S.exportJSON()], { type: "application/json" })); a.download = "seo-teacher-progress-" + S.today() + ".json"; a.click(); });
     $("#imp", el).addEventListener("click", () => $("#file", el).click());
     $("#file", el).addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { S.importJSON(t); App.toast("Импортировано"); App.render(); } catch (err) { alert("Не удалось импортировать: " + err.message); } }); });
