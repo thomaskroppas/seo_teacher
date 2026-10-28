@@ -18,7 +18,8 @@
   const NAV = [["#/", "Главная"], ["#/roadmap", "План"], ["#/review", "Карточки"], ["#/trainer", "Тренажёр"], ["#/scenarios", "Кейсы"], ["#/tools", "Инструменты"], ["#/projects", "Проекты"], ["#/checklists", "Чек-листы"], ["#/glossary", "Словарь"], ["#/settings", "⚙"]];
   function renderNav() {
     const cur = location.hash || "#/"; const due = S.dueCards().length;
-    $("#nav").innerHTML = NAV.map(([h, t]) => {
+    const items = NAV.slice(); if (App.Auth && App.Auth.isAdmin()) items.splice(items.length - 1, 0, ["#/admin", "Админ"]);
+    $("#nav").innerHTML = items.map(([h, t]) => {
       const act = h === "#/" ? (cur === "#/" || cur === "") : cur.startsWith(h) || (h === "#/roadmap" && /^#\/(lesson|module|exam)/.test(cur)) || (h === "#/projects" && cur.startsWith("#/project"));
       return `<a href="${h}" class="${act ? "active" : ""}">${t}${h === "#/review" && due ? `<span class="badge">${due}</span>` : ""}</a>`;
     }).join("");

@@ -215,6 +215,28 @@
     el.innerHTML = `<h1>Поиск: «${esc(q.q || "")}»</h1>${res.length ? res.slice(0, 60).map(r => `<a class="card" style="color:inherit;display:block" href="${r.href}"><span class="pill">${r.k}</span> <b>${esc(r.t)}</b><div class="small muted">…${hl(r.sn)}…</div></a>`).join("") : '<p class="muted">Ничего не найдено.</p>'}`;
   };
 
+
+  // ---------- Аккаунт (в настройках)
+  function accountHTML() {
+    const A = App.Auth;
+    if (!A || A.mode !== "server" || !A.user) return `<div class="card"><h3 style="margin-top:0">Аккаунт</h3><p class="muted">Сейчас курс работает локально: без входа, прогресс только в этом браузере, ИИ-наставник недоступен. Войти можно на сайте, где размещена серверная часть.</p></div>`;
+    const u = A.usage;
+    return `<div class="card"><h3 style="margin-top:0">Аккаунт</h3><p><b>${esc(A.user.displayName)}</b> · ${esc(A.user.username)} · ${A.user.role === "admin" ? "администратор" : "ученик"}</p>
+      <p class="small muted">Прогресс хранится на сервере и доступен на всех ваших устройствах. ${A.Sync.offline ? "⚠️ Сейчас нет связи — изменения сохранятся позже." : "✅ Синхронизировано."}${u ? ` ИИ сегодня: потрачено $${u.spent.toFixed(2)} из $${u.limit.toFixed(2)}.` : ""}</p>
+      <div class="grid g3"><div class="field"><label for="pwc">Текущий пароль</label><input id="pwc" type="password" autocomplete="current-password"></div><div class="field"><label for="pwn">Новый пароль (от 8 символов)</label><input id="pwn" type="password" autocomplete="new-password"></div></div>
+      <div class="row"><button class="btn" id="pwb">Сменить пароль</button><button class="btn danger" id="logout">Выйти</button>${A.isAdmin() ? '<a class="btn" href="#/admin">Администрирование</a>' : ""}</div><div id="pwmsg" class="small mt"></div></div>`;
+  }
+  function bindAccount(el) {
+    const A = App.Auth; if (!A || A.mode !== "server" || !A.user) return;
+    $("#logout", el).addEventListener("click", () => A.logout());
+    $("#pwb", el).addEventListener("click", async () => {
+      const m = $("#pwmsg", el); m.textContent = "…";
+      const r = await App.Api.call("change_password", { method: "POST", body: { current: $("#pwc", el).value, new: $("#pwn", el).value } });
+      m.textContent = r.ok ? "✅ Пароль изменён" : "⚠️ " + ((r.data && r.data.message) || "Ошибка");
+      if (r.ok) { $("#pwc", el).value = ""; $("#pwn", el).value = ""; }
+    });
+  }
+
   // ---------- Настройки
   routes.settings = function (el) {
     App.title = "Настройки";
@@ -222,9 +244,9 @@
       <div class="row"><button class="btn primary" id="exp">Экспорт в файл</button><button class="btn" id="imp">Импорт из файла</button><input type="file" id="file" accept="application/json" class="hide"></div></div>
       <div class="card"><h3 style="margin-top:0">Старт обучения</h3><div class="field"><label>Дата начала (для счётчика дней)</label><input type="date" id="sd" value="${esc(S.state.startDate)}"></div>
       <h3>Сброс</h3><button class="btn danger" id="reset">Стереть весь прогресс</button></div></div>
-      ${App.aiSettingsHTML ? App.aiSettingsHTML() : ""}
+      ${accountHTML()}
       <div class="card"><h3 style="margin-top:0">Как учиться по этому курсу</h3><ol><li>Теория → практика → квиз: не переходите дальше, пока практика не сделана (результаты записывайте в заметки).</li><li>Карточки — 10 минут в день. Они возвращают вас к теме через 1, 3, 7, 16, 35 дней.</li><li>Кейсы — после каждого модуля: учат принимать решения.</li><li>Ведите реальный проект. Курс — карта, трафик даёт только ваш сайт.</li></ol></div>`;
-    if (App.aiSettingsBind) App.aiSettingsBind(el);
+    bindAccount(el);
     $("#exp", el).addEventListener("click", () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([S.exportJSON()], { type: "application/json" })); a.download = "seo-teacher-progress-" + S.today() + ".json"; a.click(); });
     $("#imp", el).addEventListener("click", () => $("#file", el).click());
     $("#file", el).addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { S.importJSON(t); App.toast("Импортировано"); App.render(); } catch (err) { alert("Не удалось импортировать: " + err.message); } }); });

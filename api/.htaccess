@@ -1,0 +1,12 @@
+# Закрываем служебные файлы и отключаем сжатие/буферизацию для потокового ответа ИИ
+<FilesMatch "\.(sample\.php|md|sqlite|log)$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^lib/ - [F,L]
+</IfModule>
+<IfModule mod_env.c>
+  SetEnv no-gzip 1
+</IfModule>
+Options -Indexes

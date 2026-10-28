@@ -7,16 +7,62 @@
     v: 1, startDate: today(), lessons: {}, cards: {}, qstats: {}, scen: {}, exams: {},
     checklists: {}, projects: [], notes: {}, activity: {}, theme: "auto", tools: {}, chats: {}
   });
-  let state;
+  let state = defaults();
   let memoryOnly = false;
-  try { state = Object.assign(defaults(), JSON.parse(localStorage.getItem(KEY) || "{}")); }
-  catch (e) { state = defaults(); }
+  let ns = "local";
+  const keyFor = () => (ns === "local" ? KEY : KEY + ":" + ns);
+  const hooks = { onSave: null };
 
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); memoryOnly = false; }
+  function load(namespace) {
+    ns = namespace || "local";
+    try { state = Object.assign(defaults(), JSON.parse(localStorage.getItem(keyFor()) || "{}")); }
+    catch (e) { state = defaults(); }
+  }
+  function save(skipHook) {
+    state.updatedAt = Date.now();
+    try { localStorage.setItem(keyFor(), JSON.stringify(state)); memoryOnly = false; }
     catch (e) { memoryOnly = true; }
+    if (!skipHook && hooks.onSave) hooks.onSave();
   }
   function touch() { const d = today(); state.activity[d] = (state.activity[d] || 0) + 1; save(); }
+  function hasProgress(st) { st = st || state; return !!st && (Object.keys(st.lessons || {}).length || Object.keys(st.cards || {}).length || (st.projects || []).length || Object.keys(st.activity || {}).length) > 0; }
+
+  // ---- Слияние состояний с разных устройств (ничего не теряем)
+  const orMerge = (x, y) => Object.assign({}, y || {}, Object.fromEntries(Object.entries(x || {}).filter(([, v]) => v)), Object.fromEntries(Object.entries(y || {}).filter(([, v]) => v)));
+  function mergeStates(a, b) {
+    a = a || {}; b = b || {};
+    const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, older = newer === a ? b : a;
+    const out = Object.assign(defaults(), JSON.parse(JSON.stringify(older)), JSON.parse(JSON.stringify(newer)));
+    const keys = (x, y) => new Set(Object.keys(x || {}).concat(Object.keys(y || {})));
+    out.lessons = {};
+    keys(a.lessons, b.lessons).forEach(id => {
+      const la = (a.lessons || {})[id] || {}, lb = (b.lessons || {})[id] || {};
+      out.lessons[id] = { read: !!(la.read || lb.read), tasks: orMerge(la.tasks, lb.tasks), ck: orMerge(la.ck, lb.ck),
+        quizBest: Math.max(la.quizBest == null ? -1 : la.quizBest, lb.quizBest == null ? -1 : lb.quizBest) < 0 ? null : Math.max(la.quizBest || 0, lb.quizBest || 0),
+        quizAttempts: Math.max(la.quizAttempts || 0, lb.quizAttempts || 0) };
+    });
+    out.cards = {};
+    keys(a.cards, b.cards).forEach(id => { const ca = (a.cards || {})[id], cb = (b.cards || {})[id]; out.cards[id] = !ca ? cb : !cb ? ca : (ca.seen !== cb.seen ? (ca.seen > cb.seen ? ca : cb) : (ca.due >= cb.due ? ca : cb)); });
+    out.qstats = {};
+    keys(a.qstats, b.qstats).forEach(id => { const qa = (a.qstats || {})[id], qb = (b.qstats || {})[id]; out.qstats[id] = !qa ? qb : !qb ? qa : ((qa.right + qa.wrong) >= (qb.right + qb.wrong) ? qa : qb); });
+    out.exams = {};
+    keys(a.exams, b.exams).forEach(id => { const ea = (a.exams || {})[id], eb = (b.exams || {})[id]; out.exams[id] = !ea ? eb : !eb ? ea : (ea.best >= eb.best ? ea : eb); });
+    out.scen = Object.assign({}, b.scen || {}, a.scen || {});
+    out.checklists = {};
+    keys(a.checklists, b.checklists).forEach(id => { out.checklists[id] = orMerge((a.checklists || {})[id], (b.checklists || {})[id]); });
+    out.notes = Object.assign({}, older.notes || {}, newer.notes || {});
+    out.activity = {};
+    keys(a.activity, b.activity).forEach(d => { out.activity[d] = Math.max((a.activity || {})[d] || 0, (b.activity || {})[d] || 0); });
+    out.chats = {};
+    keys(a.chats, b.chats).forEach(id => { const x = (a.chats || {})[id] || [], y = (b.chats || {})[id] || []; out.chats[id] = x.length >= y.length ? x : y; });
+    const pj = {}; (older.projects || []).concat(newer.projects || []).forEach(p => { pj[p.id] = p; }); out.projects = Object.values(pj);
+    out.startDate = [a.startDate, b.startDate].filter(Boolean).sort()[0] || out.startDate;
+    out.updatedAt = Math.max(a.updatedAt || 0, b.updatedAt || 0);
+    return out;
+  }
+  function replaceState(obj, skipHook) { state = Object.assign(defaults(), obj); save(skipHook !== false); }
+
+  load("local");
 
   // ---- Курс
   const modules = (window.COURSE_MODULES || []).slice().sort((a, b) => a.num - b.num);
@@ -94,7 +140,7 @@
   function dayNumber() { return Math.max(1, Math.floor((Date.now() - new Date(state.startDate).getTime()) / DAY) + 1); }
 
   window.Store = {
-    get state() { return state; }, save, touch, today, memoryOnly: () => memoryOnly,
+    get state() { return state; }, save, touch, today, memoryOnly: () => memoryOnly, load, hooks, mergeStates, replaceState, hasProgress, namespace: () => ns,
     modules, lessons, lessonById, moduleById, moduleOfLesson, allCards,
     L, lessonProgress, moduleProgress, overall, nextLesson,
     addCards, dueCards, rateCard, cardStats, cardState,
