@@ -30,7 +30,7 @@ pre.code code{background:none;padding:0;color:inherit}
 .nav a:hover{background:var(--surface2);text-decoration:none;color:var(--text)}
 .nav a.active{background:var(--primary-soft);color:var(--primary)}
 .nav .badge{background:var(--bad);color:#fff;border-radius:99px;font-size:.7rem;padding:1px 6px;margin-left:5px}
-.search input{width:130px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:inherit;font-size:.9rem}
+.search input{width:96px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:inherit;font-size:.9rem}
 .icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:1rem}
 .container{max-width:1060px;margin:0 auto;padding:26px 20px 90px;outline:none}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}

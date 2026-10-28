@@ -113,7 +113,7 @@
     el.innerHTML = `${empty ? '<div class="card"><h2>Курс обновляется</h2><p>Новые уроки для начинающих ещё загружаются. Загляните через несколько минут.</p></div>' : ""}
     <section class="hero"><div>
       <div class="muted small">День ${S.dayNumber()} · серия активности: ${S.streak()} ${App.plural(S.streak(), ["день", "дня", "дней"])}</div>
-      <h1>${o.done === o.total && o.total ? "Курс пройден 🎉" : "Продолжаем путь к ТОП-10"}</h1>
+      <h1>${o.done === o.total && o.total ? "Курс пройден 🎉" : (Object.keys(S.state.lessons).length ? "Продолжаем путь к ТОП-10" : "Добро пожаловать! Начнём с нуля")}</h1>
       ${next ? `<p>Следующий шаг: <b>${esc(m.num + "." + (+next.id.split("-l")[1]) + " " + next.title)}</b> <span class="muted">· ~${next.minutes} мин</span></p>
       <div class="row"><a class="btn primary" href="#/lesson/${next.id}">${S.lessonProgress(next).started ? "Продолжить урок" : "Начать урок"} →</a><a class="btn" href="#/roadmap">Весь план</a></div>` : "<p>Повторяйте карточки и решайте кейсы, чтобы не забыть материал.</p>"}
     </div><div class="ring" style="--p:${o.pct}"><div>${o.pct}%</div></div></section>
