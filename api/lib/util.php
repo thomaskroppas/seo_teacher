@@ -14,6 +14,8 @@ function cfg(): array {
         'relay_secret' => '',
         'timezone' => 'Europe/Moscow',
         'allow_data_in_webroot' => false,
+        'force_https' => false,       // true на боевом сервере: cookie всегда Secure + HSTS
+        'proxy_ip_header' => '',      // напр. 'HTTP_X_REAL_IP', если сайт за прокси и REMOTE_ADDR всегда один и тот же
         'debug' => false,
     ];
     return $c;
@@ -25,7 +27,7 @@ function now_day(): string {
 }
 
 function is_https(): bool {
-    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    return cfg()['force_https'] || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
         || (($_SERVER['SERVER_PORT'] ?? '') === '443');
 }
@@ -66,7 +68,17 @@ function require_xhr(): void {
 }
 
 function client_ip(): string {
+    $h = cfg()['proxy_ip_header'];
+    if ($h !== '' && !empty($_SERVER[$h])) {
+        $ip = trim(explode(',', (string)$_SERVER[$h])[0]);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
+    }
     return (string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+}
+
+/** Публичный ли адрес (приватные/loopback за прокси делят один адрес — по IP их не ограничиваем). */
+function ip_is_public(string $ip): bool {
+    return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
 }
 
 function random_hex(int $bytes = 32): string {

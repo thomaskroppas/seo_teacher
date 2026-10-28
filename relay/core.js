@@ -54,13 +54,17 @@ async function handle(req, res) {
   const cap = Number(process.env.MAX_TOKENS_CAP || 8000);
   for (const k of ['max_completion_tokens', 'max_tokens']) if (k in body) body[k] = Math.min(Number(body[k]) || cap, cap);
   if (!('max_completion_tokens' in body) && !('max_tokens' in body)) body.max_completion_tokens = Math.min(2000, cap);
-  const allowed = (process.env.ALLOWED_MODELS || '').split(',').map(s => s.trim()).filter(Boolean);
-  if (allowed.length && !allowed.includes(body.model)) return send(res, 400, { error: 'model_not_allowed' });
+  const allowed = (process.env.ALLOWED_MODELS || 'gpt-6-sol,gpt-6-luna').split(',').map(s => s.trim()).filter(Boolean);
+  if (!allowed.includes(body.model)) return send(res, 400, { error: 'model_not_allowed', message: 'Модель не разрешена ретранслятором. Список: переменная ALLOWED_MODELS' });
+  if (JSON.stringify(body).length > MAX_BODY) return send(res, 413, { error: 'bad_body' });
 
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), Number(process.env.UPSTREAM_TIMEOUT_MS || 55000));
+  res.on('close', () => { clearTimeout(timer); ac.abort(); });
   let up;
   try {
-    up = await fetch(base + '/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey }, body: JSON.stringify(body) });
-  } catch (e) { return send(res, 502, { error: { message: 'Ретранслятор не достучался до OpenAI: ' + e.message } }); }
+    up = await fetch(base + '/v1/chat/completions', { method: 'POST', signal: ac.signal, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey }, body: JSON.stringify(body) });
+  } catch (e) { clearTimeout(timer); return send(res, 502, { error: { message: 'Ретранслятор не достучался до OpenAI: ' + e.message } }); }
 
   res.statusCode = up.status;
   res.setHeader('Content-Type', up.headers.get('content-type') || 'application/json');

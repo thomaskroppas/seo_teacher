@@ -15,7 +15,12 @@ function client() {
   return { call, get cookie() { return cookie; } };
 }
 const chatBody = (q, t = 'Урок 1') => ({ messages: [{ role: 'user', content: q }], context: { title: t, text: 'ТЕОРИЯ: ' + t } });
-async function chat(c, q, t) { const { r, text } = await c.call('chat', { method: 'POST', body: chatBody(q, t), raw: true }); return { status: r.status, text }; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function chat(c, q, t) {
+  await sleep(2100); // минимальный интервал между запросами одного ученика
+  const { r, text } = await c.call('chat', { method: 'POST', body: chatBody(q, t), raw: true });
+  return { status: r.status, text };
+}
 
 (async () => {
   const admin = client(), s1 = client(), s2 = client(), anon = client();

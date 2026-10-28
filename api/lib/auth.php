@@ -10,26 +10,32 @@ function set_session_cookie(string $token, int $expires): void {
     ]);
 }
 
-function login_throttled(string $username): bool {
-    $p = db();
-    $since = time() - 900;
-    $p->prepare('DELETE FROM login_attempts WHERE ts < ?')->execute([$since]);
-    $st = $p->prepare('SELECT COUNT(*) FROM login_attempts WHERE k = ?');
-    $st->execute(['u:' . mb_strtolower($username)]);
-    if ((int)$st->fetchColumn() >= 6) return true;
-    $st->execute(['ip:' . client_ip()]);
-    return (int)$st->fetchColumn() >= 60;
+/** Атомарно проверяет лимиты попыток и записывает новую. true — можно продолжать.
+    Ключи: логин+IP (6 за 15 мин), логин глобально (40, защита от распределённого перебора), IP (60, только для публичных адресов). */
+function attempt_begin(string $kind, string $name): bool {
+    $p = db(); $now = time(); $ip = client_ip(); $n = mb_strtolower($name);
+    $keys = [[$kind . ':' . $n . '|' . $ip, 6], [$kind . ':' . $n, 40]];
+    if (ip_is_public($ip)) $keys[] = [$kind . '-ip:' . $ip, 60];
+    $p->exec('BEGIN IMMEDIATE');
+    try {
+        $p->prepare('DELETE FROM login_attempts WHERE ts < ?')->execute([$now - 900]);
+        $cnt = $p->prepare('SELECT COUNT(*) FROM login_attempts WHERE k = ?');
+        foreach ($keys as [$k, $max]) { $cnt->execute([$k]); if ((int)$cnt->fetchColumn() >= $max) { $p->exec('COMMIT'); return false; } }
+        $ins = $p->prepare('INSERT INTO login_attempts(k, ts) VALUES(?, ?)');
+        foreach ($keys as [$k]) $ins->execute([$k, $now]);
+        $p->exec('COMMIT');
+        return true;
+    } catch (Throwable $e) { if ($p->inTransaction()) $p->exec('ROLLBACK'); throw $e; }
 }
 
-function login_fail_record(string $username): void {
-    $st = db()->prepare('INSERT INTO login_attempts(k, ts) VALUES(?, ?)');
-    $st->execute(['u:' . mb_strtolower($username), time()]);
-    $st->execute(['ip:' . client_ip(), time()]);
+function attempt_clear(string $kind, string $name): void {
+    db()->prepare('DELETE FROM login_attempts WHERE k = ?')->execute([$kind . ':' . mb_strtolower($name) . '|' . client_ip()]);
 }
 
 function create_session(int $userId): void {
     $token = random_hex(32);
     $exp = time() + SESSION_TTL;
+    db()->prepare('DELETE FROM sessions WHERE expires_at < ?')->execute([time()]);
     db()->prepare('INSERT INTO sessions(token_hash, user_id, created_at, expires_at) VALUES(?,?,?,?)')
         ->execute([hash('sha256', $token), $userId, time(), $exp]);
     set_session_cookie($token, $exp);
@@ -100,12 +106,17 @@ function action_setup_status(): void {
 function action_setup(): void {
     require_xhr();
     if (user_count() > 0) fail('already', 'Система уже настроена', 409);
+    if (!attempt_begin('setup', 'key')) fail('throttled', 'Слишком много попыток. Подождите 15 минут.', 429);
     $in = json_input();
     $key = cfg()['setup_key'];
     if (!secure_equals((string)$key, (string)($in['setupKey'] ?? ''))) fail('bad_setup_key', 'Неверный ключ установки (setup_key из api/config.php)', 403);
-    $id = user_create(str_in($in, 'username', 32), (string)($in['password'] ?? ''), 'admin', str_in($in, 'displayName', 60));
+    $p = db();
+    $p->exec('BEGIN IMMEDIATE');
+    if (user_count() > 0) { $p->exec('ROLLBACK'); fail('already', 'Система уже настроена', 409); }
+    try { $id = user_create(str_in($in, 'username', 32), (string)($in['password'] ?? ''), 'admin', str_in($in, 'displayName', 60)); $p->exec('COMMIT'); }
+    catch (Throwable $e) { if ($p->inTransaction()) $p->exec('ROLLBACK'); throw $e; }
     create_session($id);
-    $u = db()->prepare('SELECT * FROM users WHERE id = ?'); $u->execute([$id]);
+    $u = $p->prepare('SELECT * FROM users WHERE id = ?'); $u->execute([$id]);
     json_out(['user' => user_public($u->fetch())]);
 }
 
@@ -115,18 +126,17 @@ function action_login(): void {
     $username = str_in($in, 'username', 32);
     $password = (string)($in['password'] ?? '');
     if ($username === '' || $password === '') fail('bad_credentials', 'Введите логин и пароль', 400);
-    if (login_throttled($username)) fail('throttled', 'Слишком много попыток. Подождите 15 минут.', 429);
+    if (!attempt_begin('u', $username)) fail('throttled', 'Слишком много попыток. Подождите 15 минут.', 429);
     $st = db()->prepare('SELECT * FROM users WHERE username = ?');
     $st->execute([$username]);
     $u = $st->fetch();
     $ok = $u && password_verify($password, $u['pass_hash']);
     if (!$ok) {
-        if (!$u) password_verify($password, '$2y$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012'); // выравниваем время
-        login_fail_record($username);
+        if (!$u) password_verify($password, '$2y$10$fLDOfpqNBys7j15W2VsBEOQ37j0yWa1y8iVqPrmQcOZiiwz3c/cLa'); // выравниваем время ответа для несуществующих логинов
         fail('bad_credentials', 'Неверный логин или пароль', 401);
     }
     if (!(int)$u['active']) fail('disabled', 'Аккаунт отключён администратором', 403);
-    db()->prepare('DELETE FROM login_attempts WHERE k = ?')->execute(['u:' . mb_strtolower($username)]);
+    attempt_clear('u', $username);
     db()->prepare('UPDATE users SET last_login = ? WHERE id = ?')->execute([time(), $u['id']]);
     if (password_needs_rehash($u['pass_hash'], PASSWORD_DEFAULT)) {
         db()->prepare('UPDATE users SET pass_hash = ? WHERE id = ?')->execute([password_hash($password, PASSWORD_DEFAULT), $u['id']]);

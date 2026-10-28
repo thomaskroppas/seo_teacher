@@ -4,10 +4,12 @@ declare(strict_types=1);
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 mb_internal_encoding('UTF-8');
+foreach (['util', 'db', 'auth', 'usage', 'state', 'chat', 'admin'] as $f) require __DIR__ . '/lib/' . $f . '.php';
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
-
-foreach (['util', 'db', 'auth', 'usage', 'state', 'chat', 'admin'] as $f) require __DIR__ . '/lib/' . $f . '.php';
+header('X-Frame-Options: DENY');
+header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
+if (cfg()['force_https']) header('Strict-Transport-Security: max-age=31536000');
 date_default_timezone_set(cfg()['timezone'] ?: 'Europe/Moscow');
 
 set_exception_handler(function (Throwable $e) {

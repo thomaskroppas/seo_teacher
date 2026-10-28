@@ -1,5 +1,5 @@
 # Закрываем служебные файлы и отключаем сжатие/буферизацию для потокового ответа ИИ
-<FilesMatch "\.(sample\.php|md|sqlite|log)$">
+<FilesMatch "\.(sample\.php|md|log)$|\.sqlite">
   Require all denied
 </FilesMatch>
 <IfModule mod_rewrite.c>

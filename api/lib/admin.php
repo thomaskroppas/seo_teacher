@@ -55,13 +55,15 @@ function action_admin_user_update(): void {
         $p->prepare('DELETE FROM sessions WHERE user_id = ?')->execute([$id]);
     }
     $newRole = isset($in['role']) ? (($in['role'] === 'admin') ? 'admin' : 'student') : $u['role'];
-    $newActive = isset($in['active']) ? ((bool)$in['active'] ? 1 : 0) : (int)$u['active'];
+    $newActive = isset($in['active']) ? (filter_var($in['active'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0) : (int)$u['active'];
+    $p->exec('BEGIN IMMEDIATE');
     if (($newRole !== 'admin' || !$newActive) && $u['role'] === 'admin') {
         $c = (int)$p->query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1 AND id != " . (int)$id)->fetchColumn();
-        if ($c < 1) fail('last_admin', 'Нельзя отключить или понизить последнего администратора', 409);
+        if ($c < 1) { $p->exec('ROLLBACK'); fail('last_admin', 'Нельзя отключить или понизить последнего администратора', 409); }
     }
     $p->prepare('UPDATE users SET role = ?, active = ? WHERE id = ?')->execute([$newRole, $newActive, $id]);
     if (!$newActive) $p->prepare('DELETE FROM sessions WHERE user_id = ?')->execute([$id]);
+    $p->exec('COMMIT');
     json_out(['ok' => true]);
 }
 
@@ -102,7 +104,10 @@ function action_admin_settings_set(): void {
 /** Диагностика окружения (только администратор или по setup_key до создания первого аккаунта). */
 function action_diag(): void {
     $allowed = false;
-    if (user_count() === 0) $allowed = secure_equals((string)cfg()['setup_key'], (string)($_GET['key'] ?? ''));
+    if (user_count() === 0) {
+        if (!attempt_begin('setup', 'key')) fail('throttled', 'Слишком много попыток', 429);
+        $allowed = secure_equals((string)cfg()['setup_key'], (string)($_GET['key'] ?? ''));
+    }
     else { $u = current_user(); $allowed = $u && $u['role'] === 'admin'; }
     if (!$allowed) fail('forbidden', 'Нет доступа', 403);
     $c = cfg();
