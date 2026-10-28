@@ -24,30 +24,32 @@ for (const f of files) {
   if (mods.length !== 1) { err(f, "ожидался 1 модуль, найдено " + mods.length); continue; }
   const m = mods[0];
   ["id", "num", "week", "title", "subtitle", "goal"].forEach(k => { if (!m[k]) err(f, "нет поля " + k); });
-  if (!Array.isArray(m.lessons) || m.lessons.length !== 6) err(f, "нужно ровно 6 уроков, есть " + (m.lessons || []).length);
+  if (!Array.isArray(m.lessons) || m.lessons.length < 6) err(f, "нужно не меньше 6 уроков, есть " + (m.lessons || []).length);
   const dist = [0, 0, 0, 0, 0];
   (m.lessons || []).forEach((l, i) => {
     const w = `урок ${i + 1} (${l.id})`;
     if (l.id !== `${m.id}-l${i + 1}`) err(f, w + " id должен быть " + `${m.id}-l${i + 1}`);
     ["title", "summary", "theory"].forEach(k => { if (!l[k]) err(f, w + " нет " + k); });
     if (!(l.minutes > 0)) err(f, w + " нет minutes");
-    if (!l.objectives || l.objectives.length < 3) err(f, w + " <3 objectives");
+    if (!l.objectives || l.objectives.length < 2) err(f, w + " <2 objectives");
     const tw = words(l.theory);
-    if (tw < 800) warn(f, `${w} теория коротковата: ${tw} слов`);
-    if (!l.practice || !l.practice.tasks || l.practice.tasks.length < 2) err(f, w + " <2 practice tasks");
+    if (tw < 380) warn(f, `${w} теория коротковата: ${tw} слов`);
+    if (tw > 1000) warn(f, `${w} теория длинновата для 20–40 минут: ${tw} слов`);
+    if (l.minutes < 15 || l.minutes > 45) warn(f, `${w} minutes=${l.minutes} вне 20–40`);
+    if (!l.practice || !l.practice.tasks || l.practice.tasks.length < 1) err(f, w + " нет practice tasks");
     (l.practice && l.practice.tasks || []).forEach((t, j) => {
       if (t.id !== `${l.id}-t${j + 1}`) err(f, `${w} task id должен быть ${l.id}-t${j + 1}`);
       if (!t.steps || t.steps.length < 3) err(f, `${w} task ${j + 1} <3 steps`);
       if (!t.deliverable) err(f, `${w} task ${j + 1} нет deliverable`);
       if (!t.checklist || t.checklist.length < 2) err(f, `${w} task ${j + 1} <2 checklist`);
     });
-    if (!l.quiz || l.quiz.length < 7) err(f, w + " <7 вопросов квиза");
+    if (!l.quiz || l.quiz.length < 5) err(f, w + " <5 вопросов квиза");
     (l.quiz || []).forEach((q, j) => { checkQ(f, `${w} quiz ${j + 1}`, q); if (typeof q.answer === "number") dist[q.answer] = (dist[q.answer] || 0) + 1; });
-    if (!l.cards || l.cards.length < 6) err(f, w + " <6 карточек");
+    if (!l.cards || l.cards.length < 4) err(f, w + " <4 карточек");
     (l.cards || []).forEach((c, j) => { if (!c.front || !c.back) err(f, `${w} card ${j + 1} пустая`); });
-    if (!l.resources || l.resources.length < 2) warn(f, w + " <2 ресурсов");
+    if (!l.resources || l.resources.length < 1) warn(f, w + " нет ресурсов");
   });
-  if (!Array.isArray(m.scenarios) || m.scenarios.length !== 6) err(f, "нужно ровно 6 сценариев");
+  if (!Array.isArray(m.scenarios) || m.scenarios.length !== 4) err(f, "нужно ровно 4 сценария");
   (m.scenarios || []).forEach((s, i) => {
     const w = `сценарий ${i + 1}`;
     if (s.id !== `${m.id}-s${i + 1}`) err(f, w + ` id должен быть ${m.id}-s${i + 1}`);
@@ -57,7 +59,7 @@ for (const f of files) {
     if (c.filter(x => x.verdict === "best").length !== 1) err(f, w + " нужен ровно один best");
     c.forEach(x => { if (!["best", "ok", "bad"].includes(x.verdict) || !x.feedback || !x.text) err(f, w + " некорректный вариант"); });
   });
-  if (!m.exam || m.exam.length < 12) err(f, "экзамен: нужно 12 вопросов, есть " + (m.exam || []).length);
+  if (!m.exam || m.exam.length < 10) err(f, "экзамен: нужно 10 вопросов, есть " + (m.exam || []).length);
   (m.exam || []).forEach((q, j) => checkQ(f, `exam ${j + 1}`, q));
   console.log(`${path.basename(f)}: ${m.lessons ? m.lessons.length : 0} уроков, слов теории: ${(m.lessons || []).reduce((a, l) => a + words(l.theory), 0)}; распределение answer(single) A-E: ${dist.join("/")}`);
 }
