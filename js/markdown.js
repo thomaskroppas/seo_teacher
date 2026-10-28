@@ -19,6 +19,8 @@
     if (/^(📌|🎯)/.test(line)) return "note";
     if (/^🧪/.test(line)) return "example";
     if (/^🇷🇺/.test(line)) return "yandex";
+    if (/^🌐/.test(line)) return "global";
+    if (/^🎮/.test(line)) return "game";
     return "plain";
   };
 

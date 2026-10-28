@@ -192,8 +192,8 @@
     App.title = "Словарь";
     const G = window.GLOSSARY || [];
     el.innerHTML = `<h1>Словарь SEO</h1><input id="gs" type="search" placeholder="Найти термин… (${G.length})" value="${esc(q.q || "")}"><div id="gl" class="mt"></div>`;
-    const draw = () => { const s = $("#gs", el).value.trim().toLowerCase(); const list = G.filter(g => !s || (g.term + " " + (g.en || "") + " " + g.def).toLowerCase().includes(s));
-      $("#gl", el).innerHTML = list.map(g => `<div class="term"><b>${esc(g.term)}</b> ${g.en ? `<span class="muted small">${esc(g.en)}</span>` : ""}<div>${MD.inline(g.def)}</div>${(g.see || []).length ? `<div class="small muted">См. также: ${g.see.map(esc).join(", ")}</div>` : ""}</div>`).join("") || '<p class="muted">Ничего не найдено.</p>'; };
+    const draw = () => { const s = $("#gs", el).value.trim().toLowerCase(); const list = G.filter(g => !s || (g.term + " " + (g.en || "") + " " + g.def + " " + (g.analogy || "")).toLowerCase().includes(s));
+      $("#gl", el).innerHTML = list.map(g => `<div class="term"><b>${esc(g.term)}</b> ${g.en ? `<span class="muted small">${esc(g.en)}</span>` : ""}<div>${MD.inline(g.def)}</div>${g.analogy ? `<div class="small muted">🎮 ${MD.inline(g.analogy)}</div>` : ""}${(g.see || []).length ? `<div class="small muted">См. также: ${g.see.map(esc).join(", ")}</div>` : ""}</div>`).join("") || '<p class="muted">Ничего не найдено.</p>'; };
     $("#gs", el).addEventListener("input", draw); draw();
   };
 

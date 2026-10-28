@@ -27,6 +27,29 @@
 
   const tools = [];
 
+  // 0. Бюджет старта (для новичка)
+  tools.push({ id: "startbudget", title: "Бюджет старта", desc: "Сколько стоит запустить первый сайт и сколько вы тратите в месяц. Модуль 4.",
+    render(el) {
+      const id = "startbudget";
+      el.innerHTML = `<div class="grid g2"><div>
+        ${field(id, "domain", "Домен на первый год (ориентир для .ru ≈ 200 ₽)", "number", 200)}
+        ${field(id, "host", "Хостинг, цена за месяц (ориентир ≈ 300–500 ₽)", "number", 400)}
+        ${field(id, "months", "Сколько месяцев оплачиваете хостинг сразу", "number", 1)}
+        </div><div>
+        ${field(id, "extra", "Другое (платная тема, плагины и т.п.; на старте лучше 0)", "number", 0)}
+        ${field(id, "limit", "Ваш лимит на старт", "number", 1000)}
+        ${field(id, "later", "Бюджет на тексты/ссылки в месяц позже (по желанию)", "number", 0)}
+        </div></div><div class="out"></div>`;
+      bind(el, id, v => {
+        const start = num(v.domain) + num(v.host) * Math.max(1, num(v.months)) + num(v.extra);
+        const monthly = num(v.host) + num(v.later) + num(v.domain) / 12;
+        const ok = start <= num(v.limit);
+        return `<div class="result"><div class="kpis">${kpi("Старт (в первый день)", fmt(start) + " ₽")}${kpi("В месяц дальше", fmt(monthly) + " ₽")}${kpi("За первый год", fmt(num(v.domain) + (num(v.host) + num(v.later)) * 12 + num(v.extra)) + " ₽")}${kpi("Лимит", fmt(num(v.limit)) + " ₽")}</div>
+        <p><span class="pill ${ok ? "ok" : "bad"}">${ok ? "Укладываетесь в лимит" : "Выше лимита на " + fmt(start - num(v.limit)) + " ₽ — урежьте лишнее"}</span></p>
+        <p class="muted small">Цены — ориентиры, проверяйте актуальные тарифы на сайте регистратора и хостинга перед оплатой. Не покупайте на старте пакеты ссылок и «SEO-продвижение под ключ».</p></div>`;
+      });
+    } });
+
   // 1. Оценка покупки сайта
   tools.push({ id: "buy", title: "Оценка покупки сайта", desc: "Окупаемость, мультипликатор, скоринг риска и ориентир справедливой цены. Урок 3.4.",
     render(el) {

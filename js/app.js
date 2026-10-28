@@ -110,13 +110,14 @@
     for (let k = 27; k >= 0; k--) { const d = new Date(); d.setDate(d.getDate() - k); const n = act[d.toISOString().slice(0, 10)] || 0; days.push(`<i class="${n > 15 ? "l3" : n > 5 ? "l2" : n ? "l1" : ""}" title="${d.toLocaleDateString("ru-RU")}: ${n}"></i>`); }
     const m = next && S.moduleOfLesson[next.id];
     const empty = !S.modules.length;
-    el.innerHTML = `${empty ? '<div class="card"><h2>Контент курса не найден</h2><p>Проверьте, что файлы data/module-*.js на месте.</p></div>' : ""}
+    el.innerHTML = `${empty ? '<div class="card"><h2>Курс обновляется</h2><p>Новые уроки для начинающих ещё загружаются. Загляните через несколько минут.</p></div>' : ""}
     <section class="hero"><div>
       <div class="muted small">День ${S.dayNumber()} · серия активности: ${S.streak()} ${App.plural(S.streak(), ["день", "дня", "дней"])}</div>
       <h1>${o.done === o.total && o.total ? "Курс пройден 🎉" : "Продолжаем путь к ТОП-10"}</h1>
       ${next ? `<p>Следующий шаг: <b>${esc(m.num + "." + (+next.id.split("-l")[1]) + " " + next.title)}</b> <span class="muted">· ~${next.minutes} мин</span></p>
       <div class="row"><a class="btn primary" href="#/lesson/${next.id}">${S.lessonProgress(next).started ? "Продолжить урок" : "Начать урок"} →</a><a class="btn" href="#/roadmap">Весь план</a></div>` : "<p>Повторяйте карточки и решайте кейсы, чтобы не забыть материал.</p>"}
     </div><div class="ring" style="--p:${o.pct}"><div>${o.pct}%</div></div></section>
+    ${(() => { const c = (window.CHECKLISTS || []).find(x => x.id === "first-site"); if (!c) return ""; const st = S.state.checklists["-:first-site"] || {}; let t = 0, d = 0; c.groups.forEach((g, gi) => g.items.forEach((_, ii) => { t++; if (st[gi + "." + ii]) d++; })); return `<a class="card mt" style="display:block;color:inherit" href="#/checklist/first-site"><div class="row between"><b>🚀 Квест «Мой первый сайт»</b><span class="pill pri">${d}/${t}</span></div><div class="muted small">Реальный сайт за ~1000 ₽: домен, хостинг, WordPress, первые статьи. Отмечайте этапы по ходу курса.</div>${App.bar(t ? d / t * 100 : 0)}</a>`; })()}
     <div class="grid g4 mt">
       <a class="card stat" href="#/review" style="color:inherit"><b>${due}</b><span>карточек к повторению</span></a>
       <a class="card stat" href="#/trainer?mode=weak" style="color:inherit"><b>${weak}</b><span>вопросов с ошибками</span></a>
@@ -135,7 +136,7 @@
   // ---------- План
   routes.roadmap = function (el) {
     const next = S.nextLesson();
-    el.innerHTML = `<h1>План обучения</h1><p class="muted">8 модулей, 48 уроков. Идеальный темп — 1 урок в день (≈ 8 недель). Порядок выстроен от основ и выбора ниши — к покупке сайта, технике, контенту, ссылкам и запуску до ТОП-10.</p>` +
+    el.innerHTML = `<h1>План обучения</h1><p class="muted">${S.modules.length} модулей, ${S.lessons.length} коротких уроков по 20–40 минут. Идеальный темп — 1 урок в день (≈ ${Math.ceil(S.lessons.length / 5)} недель при 5 днях в неделю). Порядок: основы → как работает поиск → тема и ключевые слова → запуск первого сайта → тексты → техника → ссылки → рост до ТОП-10 → покупка готовых сайтов → деньги. Ничего знать заранее не нужно.</p>` +
       S.modules.map(m => { const p = S.moduleProgress(m); const open = next && S.moduleOfLesson[next.id] === m;
         return `<details class="card module" ${open ? "open" : ""}><summary><div class="mnum">${m.num}</div><div class="grow"><div class="row between"><b>${esc(m.title)}</b><span class="pill">${esc(m.week)}</span></div><div class="muted small">${esc(m.subtitle)}</div>${App.bar(p.pct, p.done === p.total ? "ok" : "")}</div></summary>
         <div class="small muted" style="padding:0 20px 12px"><b>Цель:</b> ${esc(m.goal)}</div>
@@ -150,8 +151,8 @@
     el.innerHTML = `<div class="crumbs"><a href="#/roadmap">План</a> / Модуль ${m.num}</div><h1>${m.num}. ${esc(m.title)}</h1><p class="muted">${esc(m.subtitle)}</p>
     <div class="card"><b>Цель модуля</b><p>${esc(m.goal)}</p>${App.bar(p.pct)}</div>
     <h2>Уроки</h2><div class="card" style="padding:0">${m.lessons.map((l, i) => { const lp = S.lessonProgress(l); return `<a class="lrow" href="#/lesson/${l.id}"><span class="dot ${lp.done ? "done" : lp.started ? "part" : ""}">${lp.done ? "✓" : ""}</span><span class="grow"><b>${m.num}.${i + 1}</b> ${esc(l.title)}</span><span class="pill">${lp.pct}%</span></a>`; }).join("")}</div>
-    <div class="grid g2 mt"><a class="card" style="color:inherit" href="#/scenarios?m=${m.id}"><h3 style="margin-top:0">🎯 Кейсы с выбором</h3><p class="muted">6 ситуаций: принять решение, увидеть последствия.</p></a>
-    <a class="card" style="color:inherit" href="#/exam/${m.id}"><h3 style="margin-top:0">📝 Экзамен модуля</h3><p class="muted">12 вопросов, порог 75%. ${S.state.exams[m.id] ? "Лучший результат: " + S.state.exams[m.id].best + "%" : "Ещё не сдавался."}</p></a></div>`;
+    <div class="grid g2 mt"><a class="card" style="color:inherit" href="#/scenarios?m=${m.id}"><h3 style="margin-top:0">🎯 Кейсы с выбором</h3><p class="muted">${m.scenarios.length} ситуации: принять решение, увидеть последствия.</p></a>
+    <a class="card" style="color:inherit" href="#/exam/${m.id}"><h3 style="margin-top:0">📝 Экзамен модуля</h3><p class="muted">${m.exam.length} вопросов, порог 75%. ${S.state.exams[m.id] ? "Лучший результат: " + S.state.exams[m.id].best + "%" : "Ещё не сдавался."}</p></a></div>`;
     App.title = m.title;
   };
 
@@ -206,7 +207,7 @@
   routes.exam = function (el, [id]) {
     const m = S.moduleById[id]; if (!m) return (el.innerHTML = "<p>Модуль не найден.</p>");
     const prev = S.state.exams[id];
-    el.innerHTML = `<div class="crumbs"><a href="#/module/${id}">Модуль ${m.num}</a> / Экзамен</div><h1>Экзамен: ${esc(m.title)}</h1><div class="card"><p>12 вопросов по всему модулю, порядок вопросов и ответов перемешивается. Порог — <b>75%</b>. ${prev ? "Лучший результат: <b>" + prev.best + "%</b>." : ""}</p></div><div id="qbox" class="mt"></div>`;
+    el.innerHTML = `<div class="crumbs"><a href="#/module/${id}">Модуль ${m.num}</a> / Экзамен</div><h1>Экзамен: ${esc(m.title)}</h1><div class="card"><p>${m.exam.length} вопросов по всему модулю, порядок вопросов и ответов перемешивается. Порог — <b>75%</b>. ${prev ? "Лучший результат: <b>" + prev.best + "%</b>." : ""}</p></div><div id="qbox" class="mt"></div>`;
     const qs = m.exam.map((q, i) => Object.assign({ id: `${id}-e${i}`, ctx: "Экзамен" }, q));
     App.runQuiz($("#qbox", el), qs, { passPct: 75, shuffle: true, shuffleQuestions: true, title: "Экзамен", onFinish: r => { const cur = S.state.exams[id]; if (!cur || r.pct > cur.best) S.state.exams[id] = { best: r.pct, at: Date.now() }; S.touch(); } });
     App.title = "Экзамен " + m.title;

@@ -67,6 +67,8 @@ pre.code code{background:none;padding:0;color:inherit}
 .callout.tip{border-color:var(--ok);background:var(--ok-soft)}.callout.warn{border-color:var(--bad);background:var(--bad-soft)}
 .callout.note{border-color:var(--primary);background:var(--primary-soft)}.callout.example{border-color:var(--warn);background:var(--warn-soft)}
 .callout.yandex{border-color:#e11d48;background:color-mix(in srgb,#e11d48 8%,var(--surface))}
+.callout.global{border-color:#0891b2;background:color-mix(in srgb,#0891b2 8%,var(--surface))}
+.callout.game{border-color:#9333ea;background:color-mix(in srgb,#9333ea 8%,var(--surface))}
 .table-wrap{overflow-x:auto;margin:1em 0}table{border-collapse:collapse;width:100%;font-size:.93rem}
 th,td{border:1px solid var(--border);padding:8px 11px;text-align:left;vertical-align:top}th{background:var(--surface2)}
 .task{border:1px solid var(--border);border-radius:14px;padding:18px;background:var(--surface);margin:14px 0}
