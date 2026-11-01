@@ -1,4 +1,4 @@
 {
-  "regions": ["fra1"],
+  "regions": ["iad1"],
   "functions": { "api/relay.js": { "maxDuration": 60 } }
 }
