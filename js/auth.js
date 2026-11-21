@@ -100,7 +100,7 @@
   }
   function showSetup() {
     authShell(`<form id="sf"><p>Это первый запуск. Создайте <b>учётную запись администратора</b>.</p>
-      <div class="field"><label for="sk">Ключ установки (setup_key из api/config.php)</label><input id="sk" type="password" autocomplete="off" required></div>
+      <div class="field"><label for="sk">Ключ первого запуска</label><input id="sk" type="password" autocomplete="off" required></div>
       <div class="field"><label for="su">Логин (латиница, 3–32 символа)</label><input id="su" type="text" autocomplete="username" autocapitalize="none" required></div>
       <div class="field"><label for="sd">Имя (как показывать)</label><input id="sd" type="text"></div>
       <div class="field"><label for="sp">Пароль (от 8 символов)</label><input id="sp" type="password" autocomplete="new-password" required minlength="8"></div>
