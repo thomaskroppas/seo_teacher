@@ -159,3 +159,8 @@ body.local-mode .ai-fab,body.local-mode .ai-panel{display:none!important}
   body.locked .container{padding-bottom:30px}
   .brand span:last-child{display:none}
 }
+
+/* админка: тепловая карта активности (как в GitHub) — колонки = недели, строки = Пн..Вс */
+.gh{display:grid;grid-template-rows:repeat(7,11px);grid-auto-flow:column;grid-auto-columns:11px;gap:3px;overflow-x:auto;padding:8px 0}
+.gh-cell{display:inline-block;width:11px;height:11px;border-radius:2px;background:var(--surface2)}
+.gh-cell.l1{background:color-mix(in srgb,var(--primary) 30%,var(--surface2))}.gh-cell.l2{background:color-mix(in srgb,var(--primary) 55%,var(--surface2))}.gh-cell.l3{background:color-mix(in srgb,var(--primary) 80%,var(--surface2))}.gh-cell.l4{background:var(--primary)}

@@ -1,6 +1,6 @@
 'use strict';
 /* Тест API: node tests/e2e/api.test.js (нужен запущенный tests/e2e/stack.sh start и пустая БД) */
-const B = 'http://127.0.0.1:8080/api/index.php';
+const B = process.env.API_BASE || 'http://127.0.0.1:8080/api/index.php';
 let pass = 0, failN = 0;
 const ok = (c, m) => { if (c) pass++; else { failN++; console.log('FAIL:', m); } };
 function client() {
@@ -96,6 +96,10 @@ async function chat(c, q, t) {
   r = await s1.call('logout', { method: 'POST', body: {} }); r = await s1.call('me'); ok(r.s === 401, 'logout kills session');
   r = await s1.call('login', { method: 'POST', body: { username: 'anna', password: 'newpassword1' } }); ok(r.s === 200, 'login with new pw');
   r = await s1.call('state_get'); ok(r.j.rev === 2 && JSON.stringify(r.j.state).includes('Анны'), 'state persisted for anna');
+  // пустые объекты должны остаться объектами (иначе клиент теряет отметки практики), activity видна админу
+  r = await s1.call('state_put', { method: 'POST', body: { baseRev: 2, state: { lessons: { a: { read: true, tasks: {}, ck: {} } }, notes: {}, activity: { '2020-01-01': 3, [new Date().toISOString().slice(0, 10)]: 2, bad: 'x' } } } }); ok(r.s === 200, 'rev3');
+  r = await s1.call('state_get'); ok(JSON.stringify(r.j.state.lessons.a.tasks) === '{}' && JSON.stringify(r.j.state.notes) === '{}', 'empty objects preserved: ' + JSON.stringify(r.j.state));
+  r = await admin.call('admin_overview'); const anna = r.j.users.find(u => u.username === 'anna'); ok(anna && Object.values(anna.activity).includes(2) && !('2020-01-01' in anna.activity) && !('bad' in anna.activity), 'admin sees recent valid activity: ' + JSON.stringify(anna && anna.activity));
   // --- брутфорс
   for (let i = 0; i < 6; i++) await anon.call('login', { method: 'POST', body: { username: 'victim', password: 'x' + i } });
   r = await anon.call('login', { method: 'POST', body: { username: 'victim', password: 'y' } }); ok(r.s === 429, 'bruteforce throttled');

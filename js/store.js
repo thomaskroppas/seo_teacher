@@ -2,7 +2,8 @@
 (function () {
   const KEY = "seo-teacher-v1";
   const DAY = 86400000;
-  const today = () => new Date().toISOString().slice(0, 10);
+  const ymd = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); // локальная дата, не UTC
+  const today = () => ymd(new Date());
   const defaults = () => ({
     v: 1, startDate: today(), lessons: {}, cards: {}, qstats: {}, scen: {}, exams: {},
     checklists: {}, projects: [], notes: {}, activity: {}, theme: "auto", tools: {}, chats: {}
@@ -12,10 +13,20 @@
   let ns = "local";
   const keyFor = () => (ns === "local" ? KEY : KEY + ":" + ns);
   const hooks = { onSave: null };
+  const MAPS = ["lessons", "cards", "qstats", "scen", "exams", "checklists", "notes", "activity", "tools", "chats"];
+  const obj = v => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+  // старый сервер превращал пустые {} в [] — записи в такой «массив» терялись при сохранении. Пустой [] → {} без потерь.
+  function normalize(st) {
+    MAPS.forEach(k => { st[k] = obj(st[k]); });
+    Object.values(st.lessons).forEach(l => { if (l && typeof l === "object") { l.tasks = obj(l.tasks); l.ck = obj(l.ck); } });
+    ["checklists", "tools"].forEach(k => Object.keys(st[k]).forEach(id => { st[k][id] = obj(st[k][id]); }));
+    if (!Array.isArray(st.projects)) st.projects = [];
+    return st;
+  }
 
   function load(namespace) {
     ns = namespace || "local";
-    try { state = Object.assign(defaults(), JSON.parse(localStorage.getItem(keyFor()) || "{}")); }
+    try { state = normalize(Object.assign(defaults(), JSON.parse(localStorage.getItem(keyFor()) || "{}"))); }
     catch (e) { state = defaults(); }
   }
   function save(skipHook) {
@@ -60,7 +71,7 @@
     out.updatedAt = Math.max(a.updatedAt || 0, b.updatedAt || 0);
     return out;
   }
-  function replaceState(obj, skipHook) { state = Object.assign(defaults(), obj); save(skipHook !== false); }
+  function replaceState(next, skipHook) { state = normalize(Object.assign(defaults(), next)); save(skipHook !== false); }
 
   load("local");
 
@@ -126,7 +137,7 @@
   // ---- Вопросы
   function recordAnswer(qid, ok) {
     const s = state.qstats[qid] || (state.qstats[qid] = { right: 0, wrong: 0, last: null });
-    if (ok) s.right++; else s.wrong++; s.last = ok; touch();
+    if (ok) s.right++; else s.wrong++; s.last = ok; save(); // действие засчитывается один раз за весь квиз (App.runQuiz)
   }
   function weakQuestionIds() { return Object.keys(state.qstats).filter(k => state.qstats[k].last === false); }
 
@@ -134,19 +145,19 @@
   function streak() {
     let n = 0; const d = new Date();
     if (!state.activity[today()]) d.setDate(d.getDate() - 1);
-    while (state.activity[d.toISOString().slice(0, 10)]) { n++; d.setDate(d.getDate() - 1); }
+    while (state.activity[ymd(d)]) { n++; d.setDate(d.getDate() - 1); }
     return n;
   }
   function dayNumber() { return Math.max(1, Math.floor((Date.now() - new Date(state.startDate).getTime()) / DAY) + 1); }
 
   window.Store = {
-    get state() { return state; }, save, touch, today, memoryOnly: () => memoryOnly, load, hooks, mergeStates, replaceState, hasProgress, namespace: () => ns,
+    get state() { return state; }, save, touch, today, ymd, memoryOnly: () => memoryOnly, load, hooks, mergeStates, replaceState, hasProgress, namespace: () => ns,
     modules, lessons, lessonById, moduleById, moduleOfLesson, allCards,
     L, lessonProgress, moduleProgress, overall, nextLesson,
     addCards, dueCards, rateCard, cardStats, cardState,
     recordAnswer, weakQuestionIds, streak, dayNumber,
     exportJSON: () => JSON.stringify(state, null, 2),
-    importJSON(text) { const o = JSON.parse(text); if (!o || typeof o !== "object" || !o.v) throw new Error("Неверный файл"); state = Object.assign(defaults(), o); save(); },
+    importJSON(text) { const o = JSON.parse(text); if (!o || typeof o !== "object" || !o.v) throw new Error("Неверный файл"); state = normalize(Object.assign(defaults(), o)); save(); },
     reset() { state = defaults(); save(); }
   };
 })();

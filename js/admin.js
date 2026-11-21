@@ -6,10 +6,22 @@
   const dt = ts => ts ? new Date(ts * 1000).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" }) : "—";
   const PRESETS = { sol: { label: "Sol (дороже, умнее)", model: "gpt-6-sol", price_in: 2, price_out: 10 }, luna: { label: "Luna (дёшево)", model: "gpt-6-luna", price_in: 0.1, price_out: 0.5 } };
 
+  const WEEKS = 26;
+  const level = n => (n >= 11 ? 4 : n >= 6 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0);
+  function heatmap(act) {
+    const end = new Date(); const start = new Date(end); start.setDate(end.getDate() - (WEEKS * 7 - 1) - ((end.getDay() + 6) % 7)); // с понедельника
+    const cells = [];
+    for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = S.ymd(d), n = act[key] || 0;
+      cells.push(`<i class="gh-cell l${level(n)}" title="${d.toLocaleDateString("ru-RU")}: ${n}"></i>`);
+    }
+    return `<div class="gh">${cells.join("")}</div>`;
+  }
+
   App.routes.admin = async function (el, [tab]) {
     if (!Auth.isAdmin()) { el.innerHTML = '<div class="card"><h2>Нет доступа</h2><p>Этот раздел только для администратора.</p></div>'; return; }
     tab = tab || "users"; App.title = "Админ";
-    el.innerHTML = `<h1>Администрирование</h1><nav class="tabs">${[["users", "👥 Ученики"], ["ai", "🤖 ИИ и лимиты"], ["usage", "📈 Расходы"]].map(([k, t]) => `<a href="#/admin/${k}" class="${tab === k ? "active" : ""}">${t}</a>`).join("")}</nav><div id="adm"><p class="muted">Загрузка…</p></div>`;
+    el.innerHTML = `<h1>Администрирование</h1><nav class="tabs">${[["users", "👥 Ученики"], ["activity", "🔥 Активность"], ["ai", "🤖 ИИ и лимиты"], ["usage", "📈 Расходы"]].map(([k, t]) => `<a href="#/admin/${k}" class="${tab === k ? "active" : ""}">${t}</a>`).join("")}</nav><div id="adm"><p class="muted">Загрузка…</p></div>`;
     let ov;
     try { const r = await Api.call("admin_overview"); if (!r.ok) throw new Error((r.data && r.data.message) || r.status); ov = r.data; }
     catch (e) { $("#adm", el).innerHTML = `<div class="card"><b>Не удалось загрузить:</b> ${esc(e.message)}</div>`; return; }
@@ -37,6 +49,12 @@
         $("[data-toggle]", tr).onclick = () => post("admin_user_update", { id, active: !u.active }, u.active ? "Отключён" : "Включён");
         $("[data-del]", tr).onclick = () => { if (confirm("Удалить «" + u.username + "» вместе с его прогрессом и историей расходов?")) post("admin_user_delete", { id }, "Удалён"); };
       });
+    } else if (tab === "activity") {
+      box.innerHTML = `<p class="muted small">Каждое действие — прочитан урок, выполнена задача, пройден квиз или экзамен, решён кейс, повторена карточка, отмечен пункт чек-листа, вопрос ИИ — даёт +1. Чем больше действий за день, тем темнее квадрат. Последние 26 недель.</p>` +
+        ov.users.map(u => {
+          const act = u.activity || {}, days = Object.keys(act), total = days.reduce((a, d) => a + act[d], 0), last = days.sort().pop();
+          return `<div class="card"><div class="row between"><b>${esc(u.displayName || u.username)} <span class="muted small">@${esc(u.username)}</span></b><span class="small muted">${total} ${App.plural(total, ["действие", "действия", "действий"])} · активных дней: ${days.length} · последний: ${last ? esc(last) : "—"} · вход: ${dt(u.lastLogin)}</span></div>${heatmap(act)}</div>`;
+        }).join("") + `<div class="row small muted">Меньше ${[0, 1, 2, 3, 4].map(l => `<i class="gh-cell l${l}"></i>`).join("")} Больше</div>`;
     } else if (tab === "ai") {
       const s = ov.settings;
       box.innerHTML = `<div class="card"><h3 style="margin-top:0">Модель и цены</h3>

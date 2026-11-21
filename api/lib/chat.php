@@ -144,7 +144,7 @@ function action_chat(): void {
     $ok = curl_exec($ch);
     $curlErr = curl_error($ch);
     if ($httpCode === 0) $httpCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    curl_close($ch);
+   
 
     if ($httpCode !== 200 || !$started) {
         $finish($gotText ? 'error' : 'failed');

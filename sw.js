@@ -1,6 +1,6 @@
 /* Service worker: чтобы курс открывался как приложение и читался без сети.
    Стратегия: сначала сеть (всегда свежая версия после обновления сайта), при отсутствии сети — кэш. API (/api/) не кэшируется никогда. */
-const CACHE = 'seo-teacher-v4';
+const CACHE = 'seo-teacher-v5';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'js/markdown.js', 'js/store.js', 'js/tools.js', 'js/app.js', 'js/views.js', 'js/auth.js', 'js/admin.js', 'js/ai.js', 'js/boot.js',
   'data/glossary.js', 'data/checklists.js', ...Array.from({ length: 11 }, (_, i) => `data/module-${i + 1}.js`),

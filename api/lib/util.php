@@ -47,12 +47,15 @@ function fail(string $code, string $message, int $status = 400, array $extra = [
 }
 
 function json_input(int $maxBytes = 3_000_000): array {
-    $raw = file_get_contents('php://input', false, null, 0, $maxBytes + 1);
-    if ($raw === false || strlen($raw) > $maxBytes) fail('too_large', 'Слишком большой запрос', 413);
-    if ($raw === '') return [];
-    $d = json_decode($raw, true);
+    $d = json_decode(raw_input($maxBytes), true);
     if (!is_array($d)) fail('bad_json', 'Некорректные данные', 400);
     return $d;
+}
+
+function raw_input(int $maxBytes): string {
+    $raw = file_get_contents('php://input', false, null, 0, $maxBytes + 1);
+    if ($raw === false || strlen($raw) > $maxBytes) fail('too_large', 'Слишком большой запрос', 413);
+    return $raw === '' ? '{}' : $raw;
 }
 
 function str_in(array $a, string $k, int $max = 200): string {

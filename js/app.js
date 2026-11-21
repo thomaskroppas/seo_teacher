@@ -99,6 +99,7 @@
         <div class="row" style="justify-content:center"><button class="btn primary" id="again">Пройти ещё раз</button>${opts.after || ""}</div></div>
         ${wrong.length ? `<h3>Разбор ошибок</h3>${wrong.map(r => `<div class="card"><div class="q-text">${MD.inline(r.q.q)}</div><div class="explain">${MD.inline(r.q.explain || "")}</div></div>`).join("")}` : "<p class='center'>Без ошибок! 🎉</p>"}</div>`;
       $("#again").addEventListener("click", () => App.runQuiz(box, questions, opts));
+      S.touch();
       if (opts.onFinish) opts.onFinish({ score, total: qs.length, pct, pass });
     }
     show();
@@ -108,7 +109,7 @@
   routes.home = function (el) {
     const o = S.overall(), next = S.nextLesson(), cs = S.cardStats(), due = S.dueCards().length, weak = S.weakQuestionIds().length;
     const act = S.state.activity; const days = [];
-    for (let k = 27; k >= 0; k--) { const d = new Date(); d.setDate(d.getDate() - k); const n = act[d.toISOString().slice(0, 10)] || 0; days.push(`<i class="${n > 15 ? "l3" : n > 5 ? "l2" : n ? "l1" : ""}" title="${d.toLocaleDateString("ru-RU")}: ${n}"></i>`); }
+    for (let k = 27; k >= 0; k--) { const d = new Date(); d.setDate(d.getDate() - k); const n = act[S.ymd(d)] || 0; days.push(`<i class="${n > 15 ? "l3" : n > 5 ? "l2" : n ? "l1" : ""}" title="${d.toLocaleDateString("ru-RU")}: ${n}"></i>`); }
     const m = next && S.moduleOfLesson[next.id];
     const empty = !S.modules.length;
     el.innerHTML = `${empty ? '<div class="card"><h2>Курс обновляется</h2><p>Новые уроки для начинающих ещё загружаются. Загляните через несколько минут.</p></div>' : ""}
@@ -210,7 +211,7 @@
     const prev = S.state.exams[id];
     el.innerHTML = `<div class="crumbs"><a href="#/module/${id}">Модуль ${m.num}</a> / Экзамен</div><h1>Экзамен: ${esc(m.title)}</h1><div class="card"><p>${m.exam.length} вопросов по всему модулю, порядок вопросов и ответов перемешивается. Порог — <b>75%</b>. ${prev ? "Лучший результат: <b>" + prev.best + "%</b>." : ""}</p></div><div id="qbox" class="mt"></div>`;
     const qs = m.exam.map((q, i) => Object.assign({ id: `${id}-e${i}`, ctx: "Экзамен" }, q));
-    App.runQuiz($("#qbox", el), qs, { passPct: 75, shuffle: true, shuffleQuestions: true, title: "Экзамен", onFinish: r => { const cur = S.state.exams[id]; if (!cur || r.pct > cur.best) S.state.exams[id] = { best: r.pct, at: Date.now() }; S.touch(); } });
+    App.runQuiz($("#qbox", el), qs, { passPct: 75, shuffle: true, shuffleQuestions: true, title: "Экзамен", onFinish: r => { const cur = S.state.exams[id]; if (!cur || r.pct > cur.best) S.state.exams[id] = { best: r.pct, at: Date.now() }; S.save(); } });
     App.title = "Экзамен " + m.title;
   };
 })();

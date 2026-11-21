@@ -15,11 +15,26 @@ function admin_user_row(array $r, array $s): array {
     ];
 }
 
+/** Дневная активность (счётчик действий из прогресса ученика) за последние ~полгода. Данные приходят с клиента — валидируем. */
+function user_activity(?string $stateJson): array {
+    $st = json_decode($stateJson ?? '{}', true);
+    $act = is_array($st) ? ($st['activity'] ?? []) : [];
+    if (!is_array($act)) return [];
+    $from = date('Y-m-d', strtotime('-183 days'));
+    $out = [];
+    foreach ($act as $day => $n) {
+        if (is_string($day) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) && $day >= $from && is_numeric($n) && $n > 0) $out[$day] = min(9999, (int)$n);
+    }
+    return $out;
+}
+
 function action_admin_overview(): void {
     require_admin();
     $s = settings_all();
     $users = [];
-    foreach (db()->query('SELECT * FROM users ORDER BY role DESC, username COLLATE NOCASE') as $r) $users[] = admin_user_row($r, $s);
+    foreach (db()->query('SELECT u.*, p.state AS progress_state FROM users u LEFT JOIN progress p ON p.user_id = u.id ORDER BY u.role DESC, u.username COLLATE NOCASE') as $r) {
+        $users[] = admin_user_row($r, $s) + ['activity' => user_activity($r['progress_state'])];
+    }
     $days = [];
     $st = db()->query("SELECT day, COALESCE(SUM(cost_usd),0) AS cost, COUNT(*) AS reqs FROM usage WHERE day >= date('now','-14 day') GROUP BY day ORDER BY day DESC");
     foreach ($st as $r) $days[] = ['day' => $r['day'], 'cost' => round((float)$r['cost'], 4), 'requests' => (int)$r['reqs']];
@@ -119,7 +134,7 @@ function action_diag(): void {
     if ($checks['relay_configured'] && function_exists('curl_init')) {
         $ch = curl_init(rtrim($c['relay_url'], '/') . (str_contains($c['relay_url'], '?') ? '&' : '?') . 'check=1');
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 25, CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_HTTPHEADER => ['X-Relay-Secret: ' . $c['relay_secret']]]);
-        $r = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE); $err = curl_error($ch); curl_close($ch);
+        $r = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE); $err = curl_error($ch);
         $checks['relay_http'] = $code; $checks['relay_error'] = $err; $checks['relay_reply'] = is_string($r) ? substr($r, 0, 300) : null;
     }
     json_out($checks);
