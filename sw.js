@@ -1,7 +1,8 @@
 /* Service worker: чтобы курс открывался как приложение и читался без сети.
    Стратегия: сначала сеть (всегда свежая версия после обновления сайта), при отсутствии сети — кэш. API (/api/) не кэшируется никогда. */
-const CACHE = 'seo-teacher-v6';
+const CACHE = 'seo-teacher-v7';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'css/style.css',
+  'fonts/onest-cyrillic.woff2', 'fonts/onest-latin.woff2', 'fonts/jbmono-cyrillic.woff2', 'fonts/jbmono-latin.woff2',
   'js/markdown.js', 'js/store.js', 'js/tools.js', 'js/app.js', 'js/views.js', 'js/auth.js', 'js/admin.js', 'js/ai.js', 'js/boot.js',
   'data/glossary.js', 'data/checklists.js', ...Array.from({ length: 11 }, (_, i) => `data/module-${i + 1}.js`),
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];

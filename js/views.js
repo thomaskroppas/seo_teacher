@@ -11,11 +11,11 @@
     const stats = S.cardStats();
     const queue = due.slice(0, 20);
     App.title = "Карточки";
-    const head = `<h1>Карточки</h1><div class="row"><span class="pill pri">К повторению: ${due.length}</span><span class="pill">В колоде: ${stats.total}</span><span class="pill ok">Выучено: ${stats.mature}</span>
-      <select id="mf" style="width:auto"><option value="">Все модули</option>${S.modules.map(m => `<option value="${m.id}" ${q.m === m.id ? "selected" : ""}>${m.num}. ${esc(m.title)}</option>`).join("")}</select></div>`;
+    const head = `<h1>Карточки</h1><div class="deck-stats"><span>к повторению ${due.length}</span><span>в колоде ${stats.total}</span><span>выучено ${stats.mature}</span></div>
+      <select id="mf" aria-label="Модуль"><option value="">Все модули</option>${S.modules.map(m => `<option value="${m.id}" ${q.m === m.id ? "selected" : ""}>${m.num}. ${esc(m.title)}</option>`).join("")}</select>`;
     if (!queue.length) {
-      el.innerHTML = head + `<div class="card center mt"><h2>${stats.total ? "Всё повторено 🎉" : "Колода пока пуста"}</h2><p class="muted">${stats.total ? "Возвращайтесь завтра: интервалы 1 → 3 → 7 → 16 → 35 дней." : "Карточки добавляются автоматически, когда вы открываете урок."}</p>
-        <button class="btn" id="addAll">Добавить карточки всех уроков в колоду</button></div>`;
+      el.innerHTML = head + `<div class="card center mt"><h2 style="margin-top:0">${stats.total ? "Всё повторено на сегодня" : "Колода пока пуста"}</h2><p class="muted">${stats.total ? "Возвращайтесь завтра: интервалы 1 → 3 → 7 → 16 → 35 дней" : "Карточки добавляются автоматически, когда вы открываете урок"}</p>
+        <button class="btn" id="addAll">Добавить карточки всех уроков</button></div>`;
       $("#mf", el).addEventListener("change", e => App.go("#/review" + (e.target.value ? "?m=" + e.target.value : "")));
       const b = $("#addAll", el); if (b) b.addEventListener("click", () => { S.lessons.forEach(l => S.addCards(l.id)); App.toast("Карточки добавлены"); App.render(); });
       return;
@@ -23,9 +23,9 @@
     let i = 0, flipped = false;
     function show() {
       const c = queue[i];
-      el.innerHTML = head + `<div class="muted small center mt">Карточка ${i + 1} из ${queue.length} · урок ${esc(c.lesson.replace("-l", "."))}</div><div class="flash mt"><div class="flip ${flipped ? "on" : ""}" id="flip" tabindex="0" role="button" aria-label="Перевернуть карточку">
-        <div class="face front"><div>${MD.inline(c.front)}</div><div class="muted small" style="margin-top:18px">нажмите, чтобы увидеть ответ (пробел)</div></div><div class="face back"><div>${MD.inline(c.back)}</div></div></div>
-        <div class="row mt ${flipped ? "" : "hide"}" id="rate" style="justify-content:center"><button class="btn danger" data-g="0">Не помню</button><button class="btn" data-g="1">Трудно</button><button class="btn ok" data-g="2">Хорошо</button><button class="btn primary" data-g="3">Легко</button></div></div>`;
+      el.innerHTML = head + `<div class="muted small center mt mono">${i + 1} из ${queue.length} · урок ${esc(c.lesson.replace(/^m(\d+)-l/, "$1."))}</div><div class="flash mt"><div class="flip ${flipped ? "on" : ""}" id="flip" tabindex="0" role="button" aria-label="Перевернуть карточку">
+        <div class="face front"><div>${MD.inline(c.front)}</div><span class="hint">${App.icon("tap", "s")}Нажмите, чтобы увидеть ответ</span></div><div class="face back"><div>${MD.inline(c.back)}</div></div></div></div>
+        <div class="rate ${flipped ? "" : "hide"}" id="rate"><button class="btn danger" data-g="0">Не помню</button><button class="btn" data-g="1">Трудно</button><button class="btn ok" data-g="2">Хорошо</button><button class="btn primary" data-g="3">Легко</button></div>`;
       $("#mf", el).addEventListener("change", e => App.go("#/review" + (e.target.value ? "?m=" + e.target.value : "")));
       const flip = () => { flipped = true; $("#flip", el).classList.add("on"); $("#rate", el).classList.remove("hide"); };
       $("#flip", el).addEventListener("click", flip);
@@ -56,7 +56,7 @@
       if (q.m) sel = sel.filter(x => x.module === q.m);
       sel = App.shuffle(sel).slice(0, +q.n || 15);
       el.innerHTML = `<h1>Тренажёр</h1><div id="qbox"></div>`;
-      if (!sel.length) { el.innerHTML += `<div class="card">Подходящих вопросов нет. ${q.mode === "weak" ? "Ошибок пока нет — отлично!" : "Откройте и прочитайте хотя бы один урок."} <a href="#/trainer">Назад</a></div>`; return; }
+      if (!sel.length) { el.innerHTML += `<div class="card">Подходящих вопросов нет. ${q.mode === "weak" ? "Ошибок пока нет" : "Откройте и прочитайте хотя бы один урок"} <a href="#/trainer">Назад</a></div>`; return; }
       App.runQuiz($("#qbox", el), sel, { shuffle: true, title: "Тренажёр", after: '<a class="btn" href="#/trainer">Другие настройки</a>' });
       return;
     }
@@ -73,7 +73,7 @@
   routes.scenarios = function (el, _, q) {
     App.title = "Кейсы";
     el.innerHTML = `<h1>Кейсы с выбором</h1><p class="muted">Мини-ситуации из практики. Выберите решение — и увидите последствия каждого варианта. Здесь нет «правильных ответов из учебника», только компромиссы.</p>
-      <div class="row"><select id="mf" style="width:auto"><option value="">Все модули</option>${S.modules.map(m => `<option value="${m.id}" ${q.m === m.id ? "selected" : ""}>${m.num}. ${esc(m.title)}</option>`).join("")}</select><button class="btn" id="rand">🎲 Случайный непройденный</button></div><div id="list" class="mt"></div>`;
+      <div class="row"><select id="mf" class="grow" aria-label="Модуль"><option value="">Все модули</option>${S.modules.map(m => `<option value="${m.id}" ${q.m === m.id ? "selected" : ""}>${m.num}. ${esc(m.title)}</option>`).join("")}</select><button class="btn" id="rand">${App.icon("refresh", "s")}Случайный непройденный</button></div><div id="list" class="mt"></div>`;
     $("#mf", el).addEventListener("change", e => App.go("#/scenarios" + (e.target.value ? "?m=" + e.target.value : "")));
     const all = []; S.modules.forEach(m => { if (!q.m || q.m === m.id) m.scenarios.forEach(s => all.push({ m, s })); });
     const list = $("#list", el);
@@ -84,7 +84,7 @@
       const box = $("#sc-" + s.id, list);
       $$(".ch", box).forEach(b => b.addEventListener("click", () => {
         const pick = +b.dataset.i; S.state.scen[s.id] = s.choices[pick].verdict; S.touch();
-        $$(".ch", box).forEach((x, i) => { x.disabled = true; x.classList.add(s.choices[i].verdict); if (i === pick) x.classList.add("picked"); x.insertAdjacentHTML("beforeend", `<span class="fb"><b>${{ best: "✅ Лучший вариант. ", ok: "⚖️ Допустимо, но есть минусы. ", bad: "❌ Рискованно. " }[s.choices[i].verdict]}</b>${MD.inline(s.choices[i].feedback)}</span>`); });
+        $$(".ch", box).forEach((x, i) => { x.disabled = true; x.classList.add(s.choices[i].verdict); if (i === pick) x.classList.add("picked"); x.insertAdjacentHTML("beforeend", `<span class="fb"><span class="pill ${{ best: "ok", ok: "warn", bad: "bad" }[s.choices[i].verdict]}">${{ best: "Лучший вариант", ok: "Допустимо, но есть минусы", bad: "Рискованно" }[s.choices[i].verdict]}</span><br>${MD.inline(s.choices[i].feedback)}</span>`); });
         box.insertAdjacentHTML("beforeend", `<button class="btn sm mt" data-retry>Сыграть заново</button>`);
         $("[data-retry]", box).addEventListener("click", () => { delete S.state.scen[s.id]; S.save(); App.render(); });
       }));
@@ -106,11 +106,11 @@
   const projects = () => S.state.projects;
   routes.projects = function (el) {
     App.title = "Проекты";
-    el.innerHTML = `<div class="row between"><h1>Мои проекты</h1><button class="btn primary" id="add">+ Новый проект</button></div>
+    el.innerHTML = `<div class="row between"><h1>Мои проекты</h1><button class="btn primary sm" id="add">Новый проект</button></div>
       <p class="muted">Здесь вы применяете курс на практике: ключи и позиции, ссылки и бюджет, статус покупки/запуска, чек-листы.</p>
       ${projects().length ? `<div class="grid g2">${projects().map(p => { const spend = (p.links || []).reduce((a, l) => a + (+l.price || 0), 0) + (+p.price || 0);
         return `<a class="card" style="color:inherit" href="#/project/${p.id}"><div class="row between"><b>${esc(p.name)}</b><span class="pill pri">${esc(p.status)}</span></div><div class="muted small">${esc(p.domain || "")} · ${esc(p.niche || "")}</div>
-        <div class="row small mt"><span>🔑 ${(p.keywords || []).length}</span><span>🔗 ${(p.links || []).length}</span><span>💰 вложено ${spend}</span></div></a>`; }).join("")}</div>` : '<div class="card center"><p>Проектов пока нет. Начните с идеи ниши (урок 2.1) или покупки сайта (модуль 3).</p></div>'}`;
+        <div class="row small mt mono muted"><span title="Ключей">${App.icon("key", "s")} ${(p.keywords || []).length}</span><span title="Ссылок">${App.icon("link", "s")} ${(p.links || []).length}</span><span title="Вложено">${App.icon("wallet", "s")} ${spend}</span></div></a>`; }).join("")}</div>` : '<div class="card center"><p>Проектов пока нет. Начните с идеи ниши (урок 2.1) или покупки сайта (модуль 3)</p></div>'}`;
     $("#add", el).addEventListener("click", () => {
       const p = { id: uid(), name: "Новый проект", domain: "", niche: "", type: "new", status: "Идея", price: 0, started: S.today(), notes: "", keywords: [], links: [], expenses: [] };
       projects().push(p); S.save(); App.go("#/project/" + p.id);
@@ -191,9 +191,9 @@
   routes.glossary = function (el, _, q) {
     App.title = "Словарь";
     const G = window.GLOSSARY || [];
-    el.innerHTML = `<h1>Словарь SEO</h1><input id="gs" type="search" placeholder="Найти термин… (${G.length})" value="${esc(q.q || "")}"><div id="gl" class="mt"></div>`;
+    el.innerHTML = `<h1>Словарь SEO</h1><input id="gs" type="search" placeholder="Термин · ${G.length} в словаре" aria-label="Найти термин" value="${esc(q.q || "")}"><div id="gl" class="mt"></div>`;
     const draw = () => { const s = $("#gs", el).value.trim().toLowerCase(); const list = G.filter(g => !s || (g.term + " " + (g.en || "") + " " + g.def + " " + (g.analogy || "")).toLowerCase().includes(s));
-      $("#gl", el).innerHTML = list.map(g => `<div class="term"><b>${esc(g.term)}</b> ${g.en ? `<span class="muted small">${esc(g.en)}</span>` : ""}<div>${MD.inline(g.def)}</div>${g.analogy ? `<div class="small muted">🎮 ${MD.inline(g.analogy)}</div>` : ""}${(g.see || []).length ? `<div class="small muted">См. также: ${g.see.map(esc).join(", ")}</div>` : ""}</div>`).join("") || '<p class="muted">Ничего не найдено.</p>'; };
+      $("#gl", el).innerHTML = list.map(g => `<div class="term"><b>${esc(g.term)}</b> ${g.en ? `<span class="muted small">${esc(g.en)}</span>` : ""}<div>${MD.inline(g.def)}</div>${g.analogy ? `<div class="analogy">${App.icon("game", "s")}<span>${MD.inline(g.analogy)}</span></div>` : ""}${(g.see || []).length ? `<div class="small muted">См. также: ${g.see.map(esc).join(", ")}</div>` : ""}</div>`).join("") || '<p class="muted">Ничего не найдено.</p>'; };
     $("#gs", el).addEventListener("input", draw); draw();
   };
 
@@ -212,7 +212,39 @@
       res.sort((a, b) => b.w - a.w);
     }
     const hl = s => esc(s).replace(new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), m => `<mark>${m}</mark>`);
-    el.innerHTML = `<h1>Поиск: «${esc(q.q || "")}»</h1>${res.length ? res.slice(0, 60).map(r => `<a class="card" style="color:inherit;display:block" href="${r.href}"><span class="pill">${r.k}</span> <b>${esc(r.t)}</b><div class="small muted">…${hl(r.sn)}…</div></a>`).join("") : '<p class="muted">Ничего не найдено.</p>'}`;
+    el.innerHTML = `<h1>Поиск</h1><form class="search-page" role="search"><input id="sq" type="search" placeholder="Урок, термин, карточка" aria-label="Поиск по курсу" value="${esc(q.q || "")}"><button class="btn primary" aria-label="Искать">${App.icon("search")}</button></form>
+      ${term ? (res.length ? `<p class="muted small" style="margin:0 4px 12px">Найдено: <span class="mono">${res.length}</span></p>` + res.slice(0, 60).map(r => `<a class="card" href="${r.href}"><span class="pill plain mono">${r.k}</span><b style="display:block;margin:4px 0">${esc(r.t)}</b><div class="small muted">…${hl(r.sn)}…</div></a>`).join("") : '<p class="muted">Ничего не найдено</p>') : ""}`;
+    $(".search-page", el).addEventListener("submit", e => { e.preventDefault(); const v = $("#sq", el).value.trim(); if (v) App.go("#/search?q=" + encodeURIComponent(v)); });
+    if (!term) $("#sq", el).focus();
+  };
+
+  // ---------- Тренировка: всё для закрепления материала
+  routes.train = function (el) {
+    App.title = "Тренировка";
+    const due = S.dueCards().length, weak = S.weakQuestionIds().length, cs = S.cardStats();
+    const scenTotal = S.modules.reduce((a, m) => a + m.scenarios.length, 0), scenDone = Object.keys(S.state.scen).length;
+    el.innerHTML = `<h1 class="hub-title">Тренировка</h1><div class="list">${[
+      ["#/review", "layers", "Карточки", due ? `около ${Math.max(1, Math.round(due / 2))} мин на сегодня` : `выучено ${cs.mature} из ${cs.total}`, due, due > 0],
+      ["#/trainer?mode=weak", "alert", "Работа над ошибками", "вопросы, где вы ошиблись", weak],
+      ["#/trainer", "zap", "Тренажёр вопросов", "смешанные вопросы из квизов и экзаменов", ""],
+      ["#/scenarios", "split", "Кейсы с выбором", "решение и его последствия", `${scenDone}/${scenTotal}`]
+    ].map(App.rowLink).join("")}</div>`;
+  };
+
+  // ---------- Ещё: инструменты, справка, настройки
+  routes.more = function (el) {
+    App.title = "Ещё";
+    el.innerHTML = `<h1 class="hub-title">Ещё</h1><div class="list">${[
+      ["#/tools", "calc", "Инструменты", "калькуляторы для реальных решений", ""],
+      ["#/checklists", "list", "Чек-листы", "запуск, покупка сайта, аудит, ссылки", ""],
+      ["#/glossary", "book", "Словарь SEO", `${(window.GLOSSARY || []).length} терминов простыми словами`, ""],
+      ["#/search", "search", "Поиск по курсу", "уроки, карточки, термины", ""]
+    ].map(App.rowLink).join("")}</div>
+    <div class="section-h"><h2>Приложение</h2></div><div class="list">
+      <button class="row-link" id="themeRow" style="width:100%;border:0;background:none;font:inherit;text-align:left;cursor:pointer"><span class="ico">${App.icon("moon")}</span><span class="txt"><b>Тема</b><span id="themeName">${App.themeName()}</span></span>${App.icon("refresh", "s")}</button>
+      ${App.rowLink(["#/settings", "settings", "Настройки и данные", "экспорт, аккаунт, пароль", ""])}
+      ${App.Auth && App.Auth.isAdmin() ? App.rowLink(["#/admin", "shield", "Администрирование", "ученики, лимиты ИИ", ""]) : ""}</div>`;
+    $("#themeRow", el).addEventListener("click", () => { App.cycleTheme(); $("#themeName", el).textContent = App.themeName(); });
   };
 
 
@@ -222,7 +254,7 @@
     if (!A || A.mode !== "server" || !A.user) return `<div class="card"><h3 style="margin-top:0">Аккаунт</h3><p class="muted">Сейчас курс работает локально: без входа, прогресс только в этом браузере, ИИ-наставник недоступен. Войти можно на сайте, где размещена серверная часть.</p></div>`;
     const u = A.usage;
     return `<div class="card"><h3 style="margin-top:0">Аккаунт</h3><p><b>${esc(A.user.displayName)}</b> · ${esc(A.user.username)} · ${A.user.role === "admin" ? "администратор" : "ученик"}</p>
-      <p class="small muted">Прогресс хранится на сервере и доступен на всех ваших устройствах. ${A.Sync.offline ? "⚠️ Сейчас нет связи — изменения сохранятся позже." : "✅ Синхронизировано."}${u ? ` ИИ сегодня: потрачено $${u.spent.toFixed(2)} из $${u.limit.toFixed(2)}.` : ""}</p>
+      <p class="small muted">Прогресс хранится на сервере и доступен на всех ваших устройствах. ${A.Sync.offline ? "Сейчас нет связи, изменения сохранятся позже." : "Синхронизировано."}${u ? ` ИИ сегодня: потрачено $${u.spent.toFixed(2)} из $${u.limit.toFixed(2)}.` : ""}</p>
       <div class="grid g3"><div class="field"><label for="pwc">Текущий пароль</label><input id="pwc" type="password" autocomplete="current-password"></div><div class="field"><label for="pwn">Новый пароль (от 8 символов)</label><input id="pwn" type="password" autocomplete="new-password"></div></div>
       <div class="row"><button class="btn" id="pwb">Сменить пароль</button><button class="btn danger" id="logout">Выйти</button>${A.isAdmin() ? '<a class="btn" href="#/admin">Администрирование</a>' : ""}</div><div id="pwmsg" class="small mt"></div></div>`;
   }
@@ -232,7 +264,8 @@
     $("#pwb", el).addEventListener("click", async () => {
       const m = $("#pwmsg", el); m.textContent = "…";
       const r = await App.Api.call("change_password", { method: "POST", body: { current: $("#pwc", el).value, new: $("#pwn", el).value } });
-      m.textContent = r.ok ? "✅ Пароль изменён" : "⚠️ " + ((r.data && r.data.message) || "Ошибка");
+      m.textContent = r.ok ? "Пароль изменён" : (r.data && r.data.message) || "Ошибка";
+      m.style.color = r.ok ? "var(--ok)" : "var(--bad)";
       if (r.ok) { $("#pwc", el).value = ""; $("#pwn", el).value = ""; }
     });
   }
@@ -243,6 +276,7 @@
     el.innerHTML = `<h1>Настройки и данные</h1><div class="grid g2"><div class="card"><h3 style="margin-top:0">Прогресс</h3><p class="muted">Все данные хранятся только в этом браузере. Делайте экспорт перед очисткой браузера и для переноса на другое устройство.</p>
       <div class="row"><button class="btn primary" id="exp">Экспорт в файл</button><button class="btn" id="imp">Импорт из файла</button><input type="file" id="file" accept="application/json" class="hide"></div></div>
       <div class="card"><h3 style="margin-top:0">Старт обучения</h3><div class="field"><label>Дата начала (для счётчика дней)</label><input type="date" id="sd" value="${esc(S.state.startDate)}"></div>
+      <h3>Тема</h3><button class="btn" id="themeSet">${App.icon("moon", "s")}<span id="themeSetName">${App.themeName()}</span></button>
       <h3>Сброс</h3><button class="btn danger" id="reset">Стереть весь прогресс</button></div></div>
       ${accountHTML()}
       <div class="card"><h3 style="margin-top:0">Как учиться по этому курсу</h3><ol><li>Теория → практика → квиз: не переходите дальше, пока практика не сделана (результаты записывайте в заметки).</li><li>Карточки — 10 минут в день. Они возвращают вас к теме через 1, 3, 7, 16, 35 дней.</li><li>Кейсы — после каждого модуля: учат принимать решения.</li><li>Ведите реальный проект. Курс — карта, трафик даёт только ваш сайт.</li></ol></div>`;
@@ -251,6 +285,7 @@
     $("#imp", el).addEventListener("click", () => $("#file", el).click());
     $("#file", el).addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { S.importJSON(t); App.toast("Импортировано"); App.render(); } catch (err) { alert("Не удалось импортировать: " + err.message); } }); });
     $("#sd", el).addEventListener("change", e => { S.state.startDate = e.target.value || S.today(); S.save(); });
+    $("#themeSet", el).addEventListener("click", () => { App.cycleTheme(); $("#themeSetName", el).textContent = App.themeName(); });
     $("#reset", el).addEventListener("click", () => { if (confirm("Точно стереть весь прогресс, проекты и заметки?") && confirm("Это необратимо. Продолжить?")) { S.reset(); App.go("#/"); App.render(); } });
   };
 })();

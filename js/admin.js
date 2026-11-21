@@ -21,7 +21,7 @@
   App.routes.admin = async function (el, [tab]) {
     if (!Auth.isAdmin()) { el.innerHTML = '<div class="card"><h2>Нет доступа</h2><p>Этот раздел только для администратора.</p></div>'; return; }
     tab = tab || "users"; App.title = "Админ";
-    el.innerHTML = `<h1>Администрирование</h1><nav class="tabs">${[["users", "👥 Ученики"], ["activity", "🔥 Активность"], ["ai", "🤖 ИИ и лимиты"], ["usage", "📈 Расходы"]].map(([k, t]) => `<a href="#/admin/${k}" class="${tab === k ? "active" : ""}">${t}</a>`).join("")}</nav><div id="adm"><p class="muted">Загрузка…</p></div>`;
+    el.innerHTML = `<h1>Администрирование</h1><nav class="tabs">${[["users", "Ученики"], ["activity", "Активность"], ["ai", "ИИ и лимиты"], ["usage", "Расходы"]].map(([k, t]) => `<a href="#/admin/${k}" class="${tab === k ? "active" : ""}">${t}</a>`).join("")}</nav><div id="adm"><p class="muted">Загрузка…</p></div>`;
     let ov;
     try { const r = await Api.call("admin_overview"); if (!r.ok) throw new Error((r.data && r.data.message) || r.status); ov = r.data; }
     catch (e) { $("#adm", el).innerHTML = `<div class="card"><b>Не удалось загрузить:</b> ${esc(e.message)}</div>`; return; }
@@ -31,7 +31,7 @@
 
     if (tab === "users") {
       box.innerHTML = `<div class="card"><h3 style="margin-top:0">Создать ученика</h3><div class="grid g4"><div class="field"><label>Логин</label><input id="nu" type="text" autocapitalize="none" placeholder="anna"></div><div class="field"><label>Имя</label><input id="nd" type="text" placeholder="Анна"></div><div class="field"><label>Пароль (от 8 символов)</label><input id="np" type="text" autocomplete="off"></div><div class="field"><label>Лимит $/сутки (пусто = по умолчанию ${money(ov.settings.daily_limit_default)})</label><input id="nl" type="number" step="0.1" min="0"></div></div>
-        <div class="row"><select id="nr" style="width:auto"><option value="student">Ученик</option><option value="admin">Администратор</option></select><button class="btn primary" id="nadd">Создать</button><button class="btn" id="ngen">Сгенерировать пароль</button></div><p class="muted small">Передайте ученику логин и пароль лично. Он сможет сменить пароль в «⚙ Настройки».</p></div>
+        <div class="row"><select id="nr" style="width:auto"><option value="student">Ученик</option><option value="admin">Администратор</option></select><button class="btn primary" id="nadd">Создать</button><button class="btn" id="ngen">Сгенерировать пароль</button></div><p class="muted small">Передайте ученику логин и пароль лично. Он сможет сменить пароль в разделе «Ещё → Настройки».</p></div>
         <div class="table-wrap mt"><table><thead><tr><th>Логин / имя</th><th>Роль</th><th>Сегодня</th><th>Лимит $/сутки</th><th>Месяц</th><th>Вход</th><th></th></tr></thead><tbody>${ov.users.map(u => `<tr data-id="${u.id}" class="${u.active ? "" : "off"}">
           <td><b>${esc(u.username)}</b><div class="muted small">${esc(u.displayName || "")}${u.active ? "" : " · <span class='pill bad'>отключён</span>"}</div></td>
           <td>${u.role === "admin" ? '<span class="pill pri">админ</span>' : "ученик"}</td>

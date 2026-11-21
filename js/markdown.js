@@ -23,6 +23,9 @@
     if (/^🎮/.test(line)) return "game";
     return "plain";
   };
+  // эмодзи-маркер в начале цитаты задаёт тип плашки; на экране вместо него — линейная иконка
+  const LEAD_EMOJI = /^\s*(?:\p{Regional_Indicator}{2}|\p{Extended_Pictographic})️?\s*/u;
+  const CALLOUT_ICON = { tip: "bulb", warn: "alert", note: "pin", example: "flask", yandex: "search", global: "globe", game: "game" };
 
   function render(md) {
     const lines = String(md || "").replace(/\r/g, "").split("\n");
@@ -48,7 +51,9 @@
       if (/^>/.test(line)) {
         const buf = [];
         while (i < lines.length && /^>/.test(lines[i])) { buf.push(lines[i].replace(/^>\s?/, "")); i++; }
-        out.push(`<div class="callout ${calloutClass(buf[0].trim())}">${render(buf.join("\n"))}</div>`);
+        const cls = calloutClass(buf[0].trim()), icon = CALLOUT_ICON[cls];
+        buf[0] = buf[0].replace(LEAD_EMOJI, "");
+        out.push(`<div class="callout ${cls}${icon ? "" : " noicon"}">${icon ? `<svg class="i" aria-hidden="true"><use href="#i-${icon}"/></svg>` : ""}<div>${render(buf.join("\n"))}</div></div>`);
         continue;
       }
       if (/^\|/.test(line) && i + 1 < lines.length && /^\|[\s:|-]+\|?\s*$/.test(lines[i + 1])) {

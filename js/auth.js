@@ -82,7 +82,7 @@
   function lockUI(on) { document.body.classList.toggle("locked", on); document.body.classList.toggle("local-mode", Auth.mode === "local"); }
   function authShell(inner) {
     lockUI(true);
-    $("#app").innerHTML = `<div class="auth-wrap"><div class="card auth-card"><div class="center"><span class="logo big">↗</span><h1 style="margin:.3em 0 0">SEO-обучатель</h1><p class="muted">Личный курс по SEO для начинающих</p></div>${inner}</div></div>`;
+    $("#app").innerHTML = `<div class="auth-wrap"><div class="card auth-card"><div class="center"><span class="logo big">#1</span><h1>SEO-обучатель</h1><p class="muted">Личный курс по SEO для начинающих</p></div>${inner}</div></div>`;
   }
   function showLogin(msg) {
     authShell(`<form id="lf"><div class="field"><label for="lu">Логин</label><input id="lu" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" required></div>

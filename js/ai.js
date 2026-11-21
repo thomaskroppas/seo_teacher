@@ -16,10 +16,12 @@
   }
 
   const fab = document.createElement("button");
-  fab.id = "aiFab"; fab.className = "ai-fab"; fab.innerHTML = "💬 Спросить ИИ"; fab.setAttribute("aria-label", "Открыть чат с ИИ-наставником");
+  fab.id = "aiFab"; fab.className = "ai-fab"; fab.innerHTML = App.icon("chat") + '<span class="lbl">Наставник</span>'; fab.setAttribute("aria-label", "Открыть чат с ИИ-наставником");
   const panel = document.createElement("aside");
   panel.id = "aiPanel"; panel.className = "ai-panel hide"; panel.setAttribute("aria-label", "Чат с ИИ-наставником");
-  document.body.append(fab, panel);
+  // кнопка живёт в шапке: внизу экрана место занято таббаром и кнопками урока
+  $(".topbar").insertBefore(fab, $("#themeBtn"));
+  document.body.append(panel);
 
   const money = n => "$" + (Number(n) || 0).toFixed(2);
   function usageHTML() {
@@ -31,11 +33,11 @@
 
   function render() {
     const ctx = context(); const chat = (S.state.chats = S.state.chats || {}); const msgs = chat[ctx.id] || [];
-    panel.innerHTML = `<div class="ai-head"><div><b>ИИ-наставник</b><div class="muted small">${esc(ctx.title)}</div></div><div class="row"><button class="btn sm" id="aiClear" title="Очистить диалог">Очистить</button><button class="icon-btn" id="aiClose" aria-label="Закрыть">✕</button></div></div>
+    panel.innerHTML = `<div class="ai-head"><div><b>ИИ-наставник</b><div class="muted small">${esc(ctx.title)}</div></div><div class="row"><button class="btn sm" id="aiClear" title="Очистить диалог">Очистить</button><button class="icon-btn" id="aiClose" aria-label="Закрыть">${App.icon("x")}</button></div></div>
       ${usageHTML()}
       <div class="ai-msgs" id="aiMsgs">${msgs.length ? msgs.map(bubble).join("") : `<div class="ai-hint">Задайте вопрос по этому уроку — например: «объясни проще», «приведи пример», «зачем это нужно?».<br><br><button class="btn sm" data-q="Объясни главную мысль урока проще, как для школьника">Объясни проще</button> <button class="btn sm" data-q="Приведи пример из жизни к этому уроку">Дай пример</button> <button class="btn sm" data-q="Какие самые частые ошибки новичков по этой теме?">Частые ошибки</button></div>`}</div>
-      <form class="ai-form" id="aiForm"><textarea id="aiInput" rows="2" placeholder="Ваш вопрос…"></textarea><button class="btn primary" id="aiSend">Отправить</button></form>
-      <div class="muted small" style="padding:0 14px 10px">ИИ может ошибаться: цены, кнопки и правила сверяйте с официальными источниками. Диалог виден только вам.</div>`;
+      <form class="ai-form" id="aiForm"><textarea id="aiInput" rows="2" placeholder="Ваш вопрос" aria-label="Ваш вопрос"></textarea><button class="btn primary" id="aiSend">Отправить</button></form>
+      <div class="ai-note">ИИ может ошибаться: цены, кнопки и правила сверяйте с официальными источниками. Диалог виден только вам.</div>`;
     const box = $("#aiMsgs", panel); box.scrollTop = box.scrollHeight;
     $("#aiClose", panel).onclick = () => panel.classList.add("hide");
     $("#aiClear", panel).onclick = () => { if (abort) abort.abort(); chat[ctx.id] = []; S.save(); render(); };
@@ -81,7 +83,7 @@
       const out = await stream(msgs, ctx, full => { const el = $("#aiLive", panel); if (el) { el.innerHTML = MD.render(full); box.scrollTop = box.scrollHeight; } });
       msgs.push({ role: "assistant", content: out || "(пустой ответ)" }); S.touch();
     } catch (e) {
-      if (e.name !== "AbortError") msgs.push({ role: "assistant", content: "⚠️ " + (e.message || "Не удалось получить ответ") + (/Failed to fetch|NetworkError|Load failed/.test(e.message || "") ? "\nНет связи с сервером. Проверьте интернет." : "") });
+      if (e.name !== "AbortError") msgs.push({ role: "assistant", content: "**Ошибка.** " + (e.message || "Не удалось получить ответ") + (/Failed to fetch|NetworkError|Load failed/.test(e.message || "") ? "\nНет связи с сервером. Проверьте интернет." : "") });
     } finally {
       busy = false; if (msgs.length > MAX_STORED) msgs.splice(0, msgs.length - MAX_STORED); S.save();
       Auth.refreshUsage().then(() => { if (!panel.classList.contains("hide")) render(); });
